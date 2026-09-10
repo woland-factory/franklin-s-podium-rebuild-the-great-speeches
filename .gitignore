@@ -1,0 +1,22 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# Run context (never committed)
+CLAUDE.md
+.claude/
+result.json
+compose.critique.yml
+
+# Vendored at build time, never committed (see scripts/fetch-model.mjs)
+public/models/
+public/ort/
+
+# Test / build output
+playwright-report/
+test-results/
+coverage/
+
+# Secrets
+.env

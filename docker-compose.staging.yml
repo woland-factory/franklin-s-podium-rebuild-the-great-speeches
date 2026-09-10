@@ -1,0 +1,23 @@
+name: franklin-s-podium-rebuild-the-great-speeches-staging
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: franklin-s-podium-rebuild-the-great-speeches-staging-web
+    expose: ["80"]
+    environment:
+      SEED_DEMO: "1"
+    networks: [default, staging]
+    mem_limit: 512m
+    oom_score_adj: 800
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+  staging:
+    external: true
+    name: factory-staging-net

@@ -1,0 +1,15 @@
+node_modules
+dist
+public/models
+public/ort
+playwright-report
+test-results
+coverage
+.git
+.gitignore
+CLAUDE.md
+.claude
+result.json
+compose.critique.yml
+*.local
+.env

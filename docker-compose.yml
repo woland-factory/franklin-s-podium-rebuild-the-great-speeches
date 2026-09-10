@@ -1,0 +1,19 @@
+name: franklins-podium-prod
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: franklins-podium-prod-web
+    # Fronted by a reverse proxy; never publish ports directly to the host.
+    expose: ["80"]
+    networks: [proxy_network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+  proxy_network:
+    external: true

@@ -1,0 +1,15 @@
+name: franklins-podium-dev
+services:
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - .:/app
+      - dev_node_modules:/app/node_modules
+    # Host firewall safety: bind to loopback only, never 0.0.0.0.
+    ports:
+      - "127.0.0.1:5173:5173"
+volumes:
+  dev_node_modules:
+    name: franklins-podium-dev-node_modules

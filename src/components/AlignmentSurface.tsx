@@ -9,7 +9,7 @@ interface AlignmentSurfaceProps {
 export function AlignmentSurface({
   pairs,
   audioUrl,
-  originalLabel = "Lincoln said",
+  originalLabel = "The original",
 }: AlignmentSurfaceProps) {
   return (
     <section className="card" aria-labelledby="align-heading">

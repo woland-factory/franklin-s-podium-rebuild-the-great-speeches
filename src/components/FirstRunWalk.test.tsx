@@ -4,18 +4,22 @@ import userEvent from "@testing-library/user-event";
 import { FirstRunWalk } from "./FirstRunWalk";
 
 describe("FirstRunWalk", () => {
-  it("renders four imperative steps anchored to the controls", () => {
-    render(<FirstRunWalk activeStep={1} onSkip={() => {}} />);
+  it("renders four imperative steps spanning the screens", () => {
+    render(<FirstRunWalk activeStep={0} onSkip={() => {}} />);
     const steps = screen.getAllByRole("listitem");
     expect(steps).toHaveLength(4);
+    expect(screen.getByText(/pick a speech/i)).toBeInTheDocument();
+    expect(screen.getByText(/read the moves/i)).toBeInTheDocument();
     expect(screen.getByText(/record your version/i)).toBeInTheDocument();
     expect(screen.getByText(/study the pairs/i)).toBeInTheDocument();
   });
 
-  it("marks the active step", () => {
+  it("marks the active step for the current screen", () => {
     render(<FirstRunWalk activeStep={2} onSkip={() => {}} />);
-    const active = screen.getByText(/fix any misheard words/i);
-    expect(active).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/record your version/i)).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
   });
 
   it("is skippable", async () => {

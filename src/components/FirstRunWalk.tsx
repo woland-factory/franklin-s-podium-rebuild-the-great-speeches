@@ -1,7 +1,7 @@
 const STEPS = [
-  "Read the hints below.",
+  "Pick a speech.",
+  "Read the moves.",
   "Record your version.",
-  "Fix any misheard words.",
   "Study the pairs.",
 ];
 

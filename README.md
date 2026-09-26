@@ -5,8 +5,9 @@ your own reconstruction from memory. The app transcribes your voice on your
 device and lines your sentences up beside the original so you can see the moves
 you missed. Nothing you say ever leaves your machine.
 
-This first version ships one speech, the Gettysburg Address, and the full
-practice loop: record, transcribe, correct, and study.
+It ships a small curated library of short public-domain speeches and the full
+practice loop for each one: pick a speech, read its moves, record, transcribe,
+correct, and study.
 
 ## Why it exists
 
@@ -72,7 +73,10 @@ at revision `51eefc0af78b103839eda9e7e4f4186acc6517fe`.
   - `src/lib/` holds the runtime plumbing: recording, transcription, and
     IndexedDB persistence.
   - `src/components/` and `src/App.tsx` hold the UI.
-  - `src/data/gettysburg.ts` is the bundled speech and its hint deck.
+  - `src/data/` holds the speech library: one module per speech (its verbatim
+    public-domain text, hint deck, and provenance) and `speeches.ts`, the
+    registry that lists them. Add a speech by adding a module and importing it
+    there.
 - **Unit and component tests** (Vitest, jsdom):
 
   ```bash
@@ -93,5 +97,5 @@ at revision `51eefc0af78b103839eda9e7e4f4186acc6517fe`.
 
 ## License
 
-MIT. See [LICENSE](./LICENSE). The text of the Gettysburg Address is in the
-public domain.
+MIT. See [LICENSE](./LICENSE). Every bundled speech is a public-domain work.
+Each speech module records its source and public-domain basis.

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("first meaningful render shows the speech content without the ASR chunk", async ({
+test("the library renders fast without the ASR chunk, then opens a speech", async ({
   page,
 }) => {
   const jsRequests: string[] = [];
@@ -10,15 +10,23 @@ test("first meaningful render shows the speech content without the ASR chunk", a
 
   await page.goto("/");
 
-  // Speech content is visible promptly, painted from bundled static data.
+  // The library paints real speech cards from bundled static data.
+  await expect(
+    page.getByRole("heading", { name: /the speech library/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i }),
+  ).toBeVisible();
+
+  // Opening a speech shows its content, still painted from static data.
+  await page
+    .getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i })
+    .click();
   await expect(
     page.getByRole("heading", { name: /the gettysburg address/i }),
   ).toBeVisible();
   await expect(page.getByText(/set the clock back 87 years/i)).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /record your version/i }),
-  ).toBeVisible();
 
-  // The Whisper/ASR code path is code-split and not loaded on first paint.
+  // The Whisper/ASR code path is code-split and not loaded before recording.
   expect(jsRequests.some((u) => /whisper/i.test(u))).toBe(false);
 });

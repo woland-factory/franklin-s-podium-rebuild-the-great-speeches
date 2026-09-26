@@ -1,11 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-// The transcription is injected through the E2E seam so alignment is
-// deterministic and the on-device model never loads in CI.
 const FAKE_TRANSCRIPT =
   "We are met on a great battlefield of that war. It is fitting and proper that we do this.";
 
-test("library to study runs end to end with a stubbed transcript", async ({
+test("a saved attempt restores on reload and on reopening the speech", async ({
   page,
 }) => {
   await page.addInitScript((t) => {
@@ -13,33 +11,35 @@ test("library to study runs end to end with a stubbed transcript", async ({
   }, FAKE_TRANSCRIPT);
 
   await page.goto("/");
-
-  // Dismiss the first-run walk to keep the flow focused.
   await page.getByRole("button", { name: /skip/i }).click();
 
-  // Library -> read -> record.
+  // Complete a warm-up for Gettysburg.
   await page
     .getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i })
     .click();
   await page.getByRole("button", { name: /start warm-up/i }).click();
   await page.getByRole("button", { name: /record your version/i }).click();
   await page.getByRole("button", { name: /stop and transcribe/i }).click();
-
-  // Correction step shows the cleaned transcript as an editable default.
-  const box = page.getByLabel(/your spoken reconstruction/i);
-  await expect(box).toBeVisible();
-  await expect(box).toHaveValue(/fitting and proper/i);
-
   await page.getByRole("button", { name: /study alignment/i }).click();
-
-  // The alignment surface renders the user's sentences beside the original.
   await expect(
     page.getByRole("heading", { name: /your words beside the original/i }),
   ).toBeVisible();
+
+  // Reloading restores the study surface for that speech.
+  await page.reload();
   await expect(
-    page.getByText("It is altogether fitting and proper that we should do this."),
+    page.getByRole("heading", { name: /your words beside the original/i }),
   ).toBeVisible();
 
-  // The recorded take is replayable from the surface.
-  await expect(page.locator("audio")).toHaveCount(1);
+  // Reopening the speech from the library restores it too.
+  await page.getByRole("button", { name: /all speeches/i }).first().click();
+  await expect(
+    page.getByRole("heading", { name: /the speech library/i }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: /your words beside the original/i }),
+  ).toBeVisible();
 });

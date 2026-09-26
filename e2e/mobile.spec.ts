@@ -100,3 +100,25 @@ test("no horizontal scroll on the schedule panel, archive, and compare at 390px"
   ).toBeVisible();
   expect(await noHorizontalScroll(page)).toBe(true);
 });
+
+test("no horizontal scroll on the ledger, paste, and settings screens at 390px", async ({
+  page,
+}) => {
+  await page.goto("/#/ledger");
+  await expect(
+    page.getByRole("heading", { name: /lines worth stealing/i }),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  await page.goto("/#/paste");
+  await expect(
+    page.getByRole("heading", { name: /practice your own text/i }),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  await page.goto("/#/settings");
+  await expect(
+    page.getByRole("heading", { name: /^settings$/i }),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+});

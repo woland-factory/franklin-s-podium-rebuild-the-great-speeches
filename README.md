@@ -11,6 +11,10 @@ correct, and study. You can schedule a cold attempt a few days out so the words
 have time to fade, take a calendar reminder with you, and keep every take in a
 per-speech archive to set this month's reconstruction beside last month's.
 
+You can also keep the best lines you find in a ledger grouped by source,
+practice against your own pasted text with the same loop, and download your
+archive and ledger as JSON or Markdown files you keep.
+
 ## Why it exists
 
 Delivery coaches grade how you sound. Recitation tools punish any change of
@@ -37,10 +41,21 @@ what a master said becomes something you study, not something you fail.
   per speech with its transcript, alignment, and audio. The archive lists them
   newest first, and you can put any two takes side by side on the same neutral
   surface to read the distance between them. No streaks, no scores, no graphs.
+- **A ledger of lines worth stealing.** Tap Keep on any line in the original
+  column to save it to your ledger, grouped by the speech or pasted text you
+  found it in. It is an additive, positive mark, never a count of lines you
+  missed.
+- **Practice your own text.** Paste any passage and the app turns it into the
+  same read, speak, and study loop. It extracts a one-line-per-sentence cue deck
+  from the text itself, with no model involved, and keeps your paste on the
+  device as a plain string.
+- **Export you keep.** From Settings, download your whole archive and ledger as
+  a JSON file or a Markdown file. Both are built in your browser and saved to
+  your device. Audio stays on the device and is never part of an export.
 - **Private by construction.** There is no server and no account. Audio and
   transcripts stay in your browser (IndexedDB). The only network requests are
-  for the app's own static files and the model. The calendar file is built in
-  your browser and saved straight to your device.
+  for the app's own static files and the model. The calendar and export files
+  are built in your browser and saved straight to your device.
 
 ## Run it
 
@@ -91,10 +106,14 @@ at revision `51eefc0af78b103839eda9e7e4f4186acc6517fe`.
   - `src/align/` holds the pure logic: `align.ts` (the alignment engine),
     `clean.ts` (transcript cleanup), `segment.ts` (sentence splitting).
   - `src/lib/` holds the runtime plumbing: recording, transcription, and
-    IndexedDB persistence (`db.ts`, including the per-speech attempt archive and
-    schedules), the spaced-loop gating (`schedule.ts`), and the calendar file
-    builder (`ics.ts`).
-  - `src/components/` and `src/App.tsx` hold the UI.
+    IndexedDB persistence (`db.ts`, including the per-speech attempt archive,
+    schedules, the ledger, and pasted user texts), the spaced-loop gating
+    (`schedule.ts`), the calendar file builder (`ics.ts`), the deterministic
+    hint extraction for pasted text (`hints.ts`), and the JSON and Markdown
+    export builders (`export.ts`).
+  - `src/components/` and `src/App.tsx` hold the UI, including the ledger
+    (`Ledger.tsx`), the paste-your-own screen (`PasteScreen.tsx`), and the
+    settings and export screen (`Settings.tsx`).
   - `src/data/` holds the speech library: one module per speech (its verbatim
     public-domain text, hint deck, and provenance) and `speeches.ts`, the
     registry that lists them. Add a speech by adding a module and importing it

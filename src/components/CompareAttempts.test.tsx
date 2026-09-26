@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CompareAttempts } from "./CompareAttempts";
@@ -22,6 +22,11 @@ function makeAttempt(createdAt: number, over: Partial<Attempt> = {}): Attempt {
 }
 
 function noop() {}
+
+beforeEach(() => {
+  URL.createObjectURL = vi.fn(() => "blob:mock");
+  URL.revokeObjectURL = vi.fn();
+});
 
 describe("CompareAttempts", () => {
   it("renders two attempts on two surfaces with per-attempt headers", () => {
@@ -61,6 +66,42 @@ describe("CompareAttempts", () => {
     expect(
       container.querySelectorAll('[class*="error"], [class*="diff"]'),
     ).toHaveLength(0);
+  });
+
+  it("gives each surface unique ids so aria-labelledby and audio labels resolve", () => {
+    const { container } = render(
+      <CompareAttempts
+        speech={gettysburg}
+        newer={makeAttempt(2000, {
+          audio_blob: new Blob(["x"], { type: "audio/webm" }),
+        })}
+        older={makeAttempt(1000, {
+          audio_blob: new Blob(["y"], { type: "audio/webm" }),
+        })}
+        onBack={noop}
+        onRecordAnother={noop}
+      />,
+    );
+
+    // Every id on the compare screen is unique.
+    const ids = Array.from(container.querySelectorAll("[id]")).map(
+      (el) => el.id,
+    );
+    expect(new Set(ids).size).toBe(ids.length);
+
+    // Every aria-labelledby resolves to exactly one element.
+    for (const el of Array.from(
+      container.querySelectorAll("[aria-labelledby]"),
+    )) {
+      const ref = el.getAttribute("aria-labelledby")!;
+      expect(container.querySelectorAll(`#${CSS.escape(ref)}`)).toHaveLength(1);
+    }
+
+    // Every audio label's htmlFor resolves to exactly one control.
+    for (const label of Array.from(container.querySelectorAll("label[for]"))) {
+      const ref = label.getAttribute("for")!;
+      expect(container.querySelectorAll(`#${CSS.escape(ref)}`)).toHaveLength(1);
+    }
   });
 
   it("shows the one-attempt state with a record-another control", async () => {

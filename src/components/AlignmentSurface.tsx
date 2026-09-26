@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { AlignmentPair } from "../types";
 
 interface AlignmentSurfaceProps {
@@ -19,9 +20,11 @@ export function AlignmentSurface({
   keptPhrases,
   onToggleKeep,
 }: AlignmentSurfaceProps) {
+  const headingId = useId();
+  const replayId = useId();
   return (
-    <section className="card" aria-labelledby="align-heading">
-      <h2 id="align-heading">Your words beside the original</h2>
+    <section className="card" aria-labelledby={headingId}>
+      <h2 id={headingId}>Your words beside the original</h2>
       <p className="muted">
         Read each pair across. An empty side is a line that only one of you
         reached.
@@ -29,11 +32,11 @@ export function AlignmentSurface({
 
       {audioUrl ? (
         <div className="audio-replay">
-          <label className="field-label" htmlFor="replay">
+          <label className="field-label" htmlFor={replayId}>
             Play your take back to check any line.
           </label>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <audio id="replay" src={audioUrl} controls preload="metadata" />
+          <audio id={replayId} src={audioUrl} controls preload="metadata" />
         </div>
       ) : null}
 

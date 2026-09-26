@@ -1,4 +1,4 @@
-# EPIC SPEC — Speech library, reading, warm-up, and first run
+# EPIC SPEC — The spaced loop and the attempt archive
 
 ## Quality differentiator (read this first)
 
@@ -9,67 +9,73 @@ checkers punish any deviation. Franklin's Podium aligns your spoken
 reconstruction to the original sentence by sentence, tolerant of
 paraphrase, and shows the two side by side so you see the move you missed.
 
-**What this demands of THIS EPIC:** the alignment engine and surface
-already exist (EPIC 1). This EPIC's job is to make that surface *reachable
-on day one for a real speech the user chose*, without a single wait. Every
-new path added here (library, read screen, warm-up start) is plumbing that
-delivers a user's sentences to the alignment surface faster and for more
-than one speech. Do not touch, dilute, or duplicate the alignment
-contract: no percentage, no pass/fail, no word-level red ink on a
-rephrasing, ever, on any speech. Generalizing the surface from one speech
-to several must not weaken it.
+**What this demands of THIS EPIC:** the alignment surface already exists
+(EPIC 1) and is reachable on day one for any curated speech (EPIC 2). This
+EPIC makes the practice *compounding*: it enforces the forgetting gap that
+makes a cold attempt worth studying, and it keeps every attempt so a
+returning user can lay this month's reconstruction beside last month's and
+see the distance closed. The compare view is a second appearance of the
+same neutral surface, applied to two of the user's own takes. It inherits
+the differentiator contract in full: no percentage, no pass/fail, no
+word-level red ink, ever, not even when comparing two attempts to each
+other. A comparison that ranks one attempt "better" than another is a
+product failure even if every test passes. Show the two; let the user
+read the gap.
 
 ---
 
 ## 1. Scope
 
 ### In scope
-Build the day-one value that exists *before* any multi-day wait, on top of
-the EPIC 1 reconstruction loop:
+On top of the EPIC 1 reconstruction loop and the EPIC 2 library, build the
+mechanism that turns a one-off reconstruction into deliberate practice:
 
-1. **A curated public-domain speech library.** More than one speech,
-   each with title, author, year, and a recorded public-domain basis. A
-   library (home) screen lists them; tapping one opens it.
-2. **The read/condense screen**, generalized from the current
-   `SpeechScreen`: for the selected speech, show the full text and its
-   one-line hint deck (the condensed "moves"), plus one obvious primary
-   action to begin.
-3. **The same-day warm-up reconstruction**, generalized from the current
-   single-speech loop: from the read screen the user immediately records,
-   transcribes on-device, corrects, and reaches the alignment surface for
-   the speech they chose. Value exists the first day, before any wait.
-4. **A guided first run that spans the new screens** (2 to 4 steps),
-   anchored to the real controls, walking a brand-new user through
-   completing one reconstruction, then never showing again.
-5. **Designed empty, loading, and error states on every screen**, and
-   **full usability at a 390px viewport** across every screen, new and
-   existing.
+1. **The scheduled cold attempt.** From a speech's read screen, the user
+   schedules a cold attempt some days out. The gap is stored locally. The
+   cold attempt is held closed until the reveal time, with a clear
+   countdown, while the same-day warm-up stays available the whole time.
+2. **A calendar file.** The user can download an `.ics` file for the reveal
+   date so the reminder lives in their own calendar. No email, no push.
+3. **The accumulating archive.** Every reconstruction (warm-up or cold) is
+   saved to a per-speech archive with its timestamp, transcript, alignment,
+   and optional audio. A per-speech archive screen lists them newest first.
+4. **Compare two attempts.** Redoing a speech shows a previous attempt
+   beside the new one, and from the archive the user can pick any two of
+   their attempts and view them side by side, each rendered on the same
+   neutral alignment surface.
+5. **Fast at scale.** The archive stays fast as it grows: lists are
+   paginated (a capped page plus a load-more control), and every IndexedDB
+   read on a hot path goes through an index. No view gets slower with every
+   attempt saved.
 
 ### Out of scope (binding non-goals — do not build)
-- **No schedule, enforced multi-day gap, countdown, reminder, or `.ics`
-  file.** Every reconstruction in this EPIC is a same-day warm-up. The
-  "cold attempt" gating is EPIC 3.
-- **No archive UI and no compare-two-attempts view.** Persisting the
-  single latest overwritable attempt per speech (already built) is the
-  ceiling; do not add a history list, a per-speech archive screen, or any
-  "previous vs new" surface.
-- **No ledger / stolen-phrases saving**, and no save-a-phrase control on
-  the alignment surface.
-- **No paste-your-own-text mode and no hint extraction.** Hint decks are
-  authored static data, shipped in the bundle.
+- **No trendline charts, scorelines, streak counters, or analytics of any
+  kind.** The archive is a list and a side-by-side compare, never a graph,
+  a "you improved" verdict, or an aggregate number that ranks attempts.
+- **No ledger / stolen-phrases saving**, and no save-a-phrase control
+  anywhere. That is EPIC 4.
+- **No paste-your-own-text mode and no hint extraction.** EPIC 4.
+- **No export of the archive to a file.** JSON/Markdown export is EPIC 4.
+  This EPIC persists and displays the archive; downloading it is later.
+- **No reminder emails and no push notifications.** The return nudge is the
+  `.ics` file only. No mailer call, no service worker, no Notification API.
 - **No scores, grades, percentages, pass/fail, or word-level red ink**,
-  anywhere, on any speech.
+  anywhere, on any speech, including the compare view.
+- **No new alignment algorithm and no three-way alignment.** Reuse
+  `align()`, `cleanTranscript`, `segmentSentences` exactly as they are.
+  Compare renders two independent existing alignments; it does not compute
+  a new cross-attempt alignment.
 - **No accounts, no server storage, no network upload, no cloud
-  transcription, no runtime LLM, no BYOK surface, no gateway calls.** The
-  app stays fully client-side.
-- **No new alignment algorithm work.** Reuse `align()`, `cleanTranscript`,
-  and `segmentSentences` exactly as they are. If a genuine defect surfaces
-  while wiring multiple speeches, fix the minimum and note it; do not
-  redesign.
-- **No search, filter, tag, sort, or favourite controls on the library.**
-  A plain ordered list of the curated speeches is the whole surface.
-- **No copyrighted speeches.** Every bundled speech is pre-1929 or a US
-  government work, verified per speech, with its basis recorded in data.
+  transcription, no runtime LLM, no BYOK, no gateway calls.** Fully
+  client-side. The only new artifact leaving the app is the `.ics` file the
+  user downloads to their own machine.
+- **No storage-eviction / retention policy.** Attempts (including audio)
+  persist until the browser clears them. If unbounded audio storage looks
+  like a real risk in testing, report it and raise a `requested_task`; do
+  not build eviction here (it would be drift, and it risks deleting a
+  user's own record).
+- **No changes to the first-run walk.** The EPIC 2 walk teaches the warm-up
+  loop and ends at the first alignment. Do not add a scheduling step to it.
 
 ---
 
@@ -77,479 +83,505 @@ the EPIC 1 reconstruction loop:
 
 The quality bar is spec. The clauses that bite here, made concrete:
 
-- **Perceived speed (§1).** The library and read screens render instantly
-  from bundled static data, with no dependency on the model download or
-  any async fetch. First meaningful render of the library shows real
-  speech cards within about 1 second. Navigating library → read → record
-  gives feedback within 100ms (pressed states, immediate view change). The
-  ASR/model code path stays dynamically imported (EPIC 1 already
-  code-splits it); adding the library must not pull it into the initial
-  chunk. The library is a small fixed list, so it needs no pagination; if
-  the curated set ever grew large it would, but that is not this EPIC.
-- **Mobile-first (§2).** Every screen fully usable at 390px: no horizontal
-  scroll on the library, read, record, or study screens; touch targets
-  (speech cards, primary buttons, back control) at least about 44px;
-  readable without zoom. The alignment surface already stacks on narrow
-  screens (EPIC 1); keep that.
-- **Designed states (§3), per screen:**
-  - *Library:* renders instantly from static data and is always
-    populated, so no loading spinner or empty region ever shows. A short
-    one-line intro tells a first-timer what the screen is for, in positive
-    phrasing.
-  - *Read screen:* if the requested speech id does not exist (a stale or
-    hand-edited URL/hash), show a designed "choose a speech" state in the
-    product's voice that routes back to the library. Never a blank screen
-    or a thrown error.
-  - *Reconstruct/study:* the EPIC 1 designed states (model-loading
-    skeleton with determinate progress, microphone-denied,
-    transcription-failed, no-speech-detected) carry over unchanged and
-    must still work for whichever speech is selected.
-- **First-run walk (§4).** See §4.4. A brand-new user is actively led
-  through one full reconstruction across the new screens; skippable at any
-  step; shown only until the first completed alignment; never again for a
-  returning user.
-- **Radically simple interface (§7).** The library gives each speech one
-  tappable row and nothing competing. The read screen has ONE obvious
-  primary action (start the warm-up); the full text sits behind a
-  disclosure so the hint deck leads. Cut words: a speech row is title,
-  author, year, not a paragraph.
+- **Perceived speed (§1).** This is the headline acceptance criterion for
+  this EPIC, so it is load-bearing, not a footnote.
+  - Every per-speech read on a hot path (latest attempt, attempt count,
+    a page of attempts, the schedule) MUST go through an IndexedDB index or
+    a primary-key lookup. NO full-store scan and NO `getAll()` that returns
+    every attempt to filter in JS. A store that grows to hundreds of
+    attempts across speeches must not slow the archive of a speech with
+    three.
+  - The archive list is paginated with a fixed page size (default 10) and a
+    load-more control. It never renders an unbounded list.
+  - Scheduling, downloading the `.ics`, opening the archive, and switching
+    the compared attempt all give feedback within 100ms (pressed states,
+    immediate view change, optimistic UI). The `.ics` is built synchronously
+    in-memory and downloaded; no spinner.
+  - Adding the archive/schedule code must not pull the ASR/model chunk into
+    the initial bundle (it stays dynamically imported, as in EPIC 1).
+- **Mobile-first (§2).** Every new surface fully usable at 390px: the
+  schedule panel, the countdown, the archive list, and the compare view.
+  No horizontal scroll. Touch targets (gap presets, add-to-calendar,
+  archive rows, compare selectors) at least ~44px. The compare view MUST
+  degrade to a single stacked column at 390px (two full alignment surfaces
+  side by side would overflow); side-by-side columns are a wide-viewport
+  enhancement only.
+- **Designed states (§3), per surface:**
+  - *Schedule panel:* three states, each designed and positive. No schedule
+    yet (invite to schedule a cold attempt, warm-up offered). Waiting
+    (countdown, warm-up still offered, add-to-calendar offered). Ready (the
+    cold attempt is open now). The waiting-vs-ready split loads without a
+    layout jump: reserve the panel's space while the schedule loads.
+  - *Archive:* a designed empty state for a speech with no attempts yet
+    ("Your attempts collect here. Warm up to add the first.") in positive
+    voice; a loading state that holds layout (skeleton rows, not a white
+    gap) while the first page reads; the populated list otherwise.
+  - *Compare:* if only one attempt exists there is nothing to compare;
+    say so in the product's voice and offer to record another, never a
+    broken or blank compare.
+  - EPIC 1/2 states (model skeleton, mic-denied, transcribe-failed,
+    no-speech, unknown-speech not-found) carry over unchanged.
+- **Radically simple interface (§7).** The read screen keeps ONE primary
+  action at a time. Before a reveal, the primary is the warm-up; the
+  schedule sits as a clearly subordinate panel. Once a scheduled reveal has
+  arrived, the primary becomes the cold attempt and the warm-up drops to
+  secondary. Never show two competing primary buttons. The archive row is
+  a timestamp, a mode label, and a short line, not a paragraph. Cut words.
 - **Copy sounds human (§8).** Sweep every user-visible string you add or
-  change (library intro, speech rows, read-screen buttons, walk steps,
-  the not-found state, any new empty/error copy) for em-dashes/en-dashes,
-  the banned LLM vocabulary, and negative empty-state phrasing before
-  finishing. Speech `full_text`, `sentences[]`, author names, and titles
-  are verbatim historical quotation and are EXEMPT (see §7); the hint
-  decks and all UI chrome are product voice and ARE swept.
-- **Accessibility (§6).** The library is a real list of links/buttons,
-  keyboard reachable, each with an accessible name; visible focus states;
-  the current screen has a proper `<h1>`; back navigation is a real
-  control, not an icon with no label. Contrast meets the existing theme.
+  change: the schedule panel, gap presets, countdown text, add-to-calendar
+  label, the `.ics` `SUMMARY`/`DESCRIPTION` (these land in the user's
+  calendar and ARE product voice), archive intro/empty/rows, compare
+  headers and its one-attempt state. Ban em-dashes and en-dashes, the
+  banned LLM vocabulary, and negative empty-state phrasing. Note in
+  particular: **do not use the word "unlock"** in any user-visible string
+  (it is on the banned list). Use "opens", "ready", or "available".
+- **Accessibility (§6).** The countdown updates via `aria-live="polite"` so
+  it is announced without stealing focus; it is not the only signal (the
+  cold-attempt control's disabled state and label also convey it). Gap
+  presets are real, labelled buttons or a labelled radio group. The archive
+  is a real list with keyboard-reachable rows, each with an accessible name
+  including its date and mode. Compare selectors are labelled. Every new
+  screen has a proper `<h1>`/`<h2>` structure and visible focus states.
 - **Security hygiene (§5).** No new server, no upload, no new external
-  fetch. The CSP/COOP/COEP posture from EPIC 1 is unchanged; adding
-  speeches adds only bundled JS/TS, no new origins. Do not add any
-  runtime fetch. (There is still no untrusted input surface this EPIC:
-  paste mode is out of scope.)
-- **README (§9).** Update the README so it no longer claims "one speech"
-  (it currently says the app ships only Gettysburg). A stranger must
-  understand it now offers a small curated library, still run it with the
-  verified commands, and find where speech data lives.
+  fetch, no new origin. The `.ics` is generated in-memory and offered as a
+  `Blob` download; it never round-trips a server. The CSP/COOP/COEP posture
+  from EPIC 1 is untouched. There is still no untrusted network input; the
+  only user input is the chosen gap (validate it: a positive integer number
+  of days within a sane bound; reject anything that is not a genuine
+  multi-day gap).
+- **README (§9).** Add the spaced loop and the archive to the "how it
+  works" description: the app now holds you to a forgetting gap, gives you a
+  calendar file, and keeps every attempt so you can compare them. Keep the
+  run/dev/test commands accurate. Point at where the new code lives
+  (`src/lib/db.ts` for persistence, `src/lib/ics.ts` and
+  `src/lib/schedule.ts` for the loop). No pipeline internals.
 
 ---
 
-## 3. Technical design — navigation and structure
+## 3. Technical design — data model and persistence
 
 ### 3.1 What exists (build on it, do not rebuild)
-- `src/App.tsx` drives a single hardwired speech (`gettysburg`) through
-  phases `record → transcribing → correct → study`, plus a demo path and
-  a first-run walk keyed off `phase`.
-- `src/components/SpeechScreen.tsx` renders one `Speech` (title, byline,
-  hint deck as "The ten moves", full text behind `<details>`).
-- `src/components/AlignmentSurface.tsx` renders pairs neutrally, stacks on
-  mobile, has audio replay, and takes an `originalLabel` prop.
-- `src/lib/db.ts` already keys the single overwritable attempt by
-  `speech_id` (`getLatestAttempt(speechId)`, `saveAttempt` sets
-  `id = speech_id`), so it already supports one saved attempt *per speech*
-  with no schema change.
-- `src/lib/env.ts` `isDemoEnabled()`, `src/data/sampleReconstruction.ts`,
-  and the `SEED_DEMO` path exist for Gettysburg.
-- The alignment/clean/segment engine (`src/align/*`) is pure and reused
-  as-is.
+- `src/lib/db.ts` opens `franklins-podium` at `DB_VERSION = 1` with a single
+  object store `attempts` keyed by `id`, where today `saveAttempt` forces
+  `id = speech_id` so exactly one overwritable attempt exists per speech.
+  `getLatestAttempt(speechId)` does a primary-key `get(speechId)`.
+- `first_run_done` is a `localStorage` flag; keep it there.
+- `src/types.ts` defines `Attempt` (`id`, `speech_id`, `created_at`,
+  `transcript`, `corrected_transcript`, `audio_blob`, `alignment`).
+- `src/App.tsx` runs `record → transcribing → correct → study`, saves the
+  attempt in `handleStudy`, and restores one attempt per speech via
+  `restoreLatest`.
+- The IndexedDB store is schemaless, so adding fields to `Attempt` is a
+  non-breaking forward add.
 
-### 3.2 Navigation model (smallest thing that works)
-Introduce lightweight in-app view state; do NOT add react-router or a
-state manager. Three views:
+### 3.2 Forward-only migration to a real archive (`DB_VERSION` 1 → 2)
+The single overwrite-by-`speech_id` scheme is the thing that must change,
+and it is the riskiest part of this EPIC. Do it as a forward-only
+migration; never rewrite or delete existing records.
 
-- `library` — the home list of curated speeches.
-- `read` — the selected speech's read/condense screen.
-- `reconstruct` — the existing `record → transcribing → correct → study`
-  flow for the selected speech.
+- **Bump `DB_VERSION` to `2`.**
+- **Attempt id becomes unique per attempt.** New attempts get a unique id
+  (`crypto.randomUUID()`, or `` `${speech_id}:${created_at}` `` if a stable
+  scheme is preferred). `saveAttempt` STOPS forcing `id = speech_id`; it
+  writes the caller-supplied unique id. Two attempts for the same speech now
+  coexist instead of overwriting.
+- **Add indexes on the `attempts` store**, created in `onupgradeneeded`
+  when upgrading to v2 (indexes build over existing rows automatically):
+  - `by_speech_created` — compound key `["speech_id", "created_at"]`. This
+    is the workhorse: per-speech, newest-first pagination via a cursor, and
+    "latest attempt" as the first row of a `"prev"` cursor. Both are index
+    range scans, never full-store scans.
+  - (Optional) `by_speech` on `"speech_id"` for `count()`; the compound
+    index can also serve counts over a bound range, so a second index is
+    only for convenience. Pick one; do not add unused indexes.
+- **Existing rows survive.** A pre-migration record has `id == speech_id`
+  and a real `speech_id`/`created_at`, so the new index includes it and it
+  becomes that speech's first archived attempt. No data rewrite. A new
+  attempt for the same speech gets a different id and is appended.
+- **Add a `schedules` object store** keyed by `speech_id`, created in the
+  same v2 upgrade. One active schedule per speech; scheduling again
+  overwrites it. No index needed (primary-key lookup only).
 
-Requirements:
-- Hold `view` and `selectedSpeechId` in `App` state. `reconstruct` reuses
-  the existing `phase` state machine unchanged.
-- **Deep-linkable and Back-friendly:** sync the current view to the URL so
-  the browser Back button works and `SEED_DEMO`/`?demo=1` can deep-link.
-  Use the URL **hash** (`#/`, `#/speech/:id`, `#/speech/:id/warmup`) so no
-  nginx route rewriting is needed and the static host config from EPIC 1
-  stays untouched. Read the hash on load, write it on navigation, and
-  listen for `hashchange` so Back/Forward update the view. In-memory state
-  remains the source of truth for the reconstruction phase; the hash only
-  needs to distinguish the three views and the selected id.
-- Navigating between views must not remount or re-download the model; the
-  model code path stays dynamically imported and only loads when a
-  reconstruction actually transcribes.
-- Unknown speech id in the hash → render the read-screen "choose a speech"
-  not-found state (§2) and offer a control back to the library.
+Guard the whole file's IndexedDB access exactly as today
+(`typeof indexedDB === "undefined"` rejects), so jsdom without a shim still
+degrades instead of throwing.
 
-### 3.3 Speech registry
-- Add `src/data/speeches.ts` exporting:
-  - `speeches: Speech[]` — the ordered curated list, Gettysburg included.
-  - `getSpeech(id: string): Speech | undefined` — id lookup.
-  - Optionally `featuredSpeechId` (default `"gettysburg"`) used by the
-    demo/seed path.
-- Each speech is its own module `src/data/<id>.ts` exporting a `Speech`,
-  mirroring the existing `src/data/gettysburg.ts` shape. `gettysburg.ts`
-  stays as is and is imported into the registry.
-- `src/App.tsx` imports the registry, not individual speeches (except the
-  featured one for the demo path if convenient).
+### 3.3 Type changes (`src/types.ts`)
+- `Attempt` gains `mode: "warmup" | "cold"`. Forward-additive. When reading
+  a pre-migration record that lacks `mode`, treat it as `"warmup"` (that is
+  what EPIC 2 recorded). Never crash on a missing field.
+- Add `ScheduleEntry`:
+  ```ts
+  export interface ScheduleEntry {
+    speech_id: string;
+    condensed_at: number;  // when the user scheduled (proxy for "has read the moves")
+    reveal_at: number;     // epoch ms when the cold attempt opens
+    status: "waiting" | "ready" | "done";
+  }
+  ```
+  `waiting` vs `ready` is DERIVED at read time from `reveal_at` vs now (see
+  `src/lib/schedule.ts`); persist `status` so `done` (a cold attempt was
+  completed against this schedule) is durable. Do not rely on the persisted
+  `status` to decide waiting/ready; recompute those from the clock so a
+  reload after the reveal reflects reality.
 
-### 3.4 Data model and persistence (forward-only, no migration)
-- The `Speech` type in `src/types.ts` already carries every field the
-  library needs (`title`, `author`, `year`, `source_url`,
-  `public_domain_basis`, `full_text`, `sentences`, `hint_deck`). **No type
-  change is required.**
-- **Hint deck is NOT required to be 1:1 with sentences.** `sentences[]` is
-  the alignment split (used by `align()`); `hint_deck[]` is the ordered
-  set of one-line "moves" the user reads to reconstruct. For Gettysburg
-  they happen to match (10 and 10); for a longer speech the deck may hold
-  fewer hints than there are sentences. Keep each deck scannable (aim for
-  roughly 8 to 15 one-line hints); this is why the curated set favours
-  short orations.
-- **IndexedDB is unchanged.** The store is keyed by `speech_id`, so
-  multiple speeches already coexist as independent single-latest records.
-  Do not bump `DB_VERSION`, do not add stores or indexes, do not add a
-  list query (that is EPIC 3's archive). If you ever add an `Attempt`
-  field, the store is schemaless so it is a non-breaking forward add, but
-  this EPIC needs none.
-- `first_run_done` stays a single `localStorage` flag (not per speech):
-  the walk teaches the loop once across the whole product.
+### 3.4 New/changed `db.ts` API (all index-backed)
+- `saveAttempt(attempt: Attempt): Promise<void>` — writes with the unique
+  `attempt.id` (no more `id = speech_id`).
+- `getLatestAttempt(speechId): Promise<Attempt | null>` — reimplemented as
+  the first row of a `"prev"` cursor on `by_speech_created` bounded to
+  `speechId`. Still the API `restoreLatest` uses.
+- `listAttempts(speechId, opts?): Promise<{ items: Attempt[]; nextCursor: T | null }>`
+  — newest-first page via the compound-index cursor, page size capped
+  (default 10). `opts` carries the cursor/offset for the next page. MUST be
+  a bounded index range scan, not `getAll()`.
+- `countAttempts(speechId): Promise<number>` — index `count()` over the
+  speech's range. Used for the "Past attempts (N)" affordance.
+- `getAttempt(id): Promise<Attempt | null>` — primary-key `get` for opening
+  one attempt in the archive/compare.
+- `saveSchedule(entry: ScheduleEntry): Promise<void>`,
+  `getSchedule(speechId): Promise<ScheduleEntry | null>`,
+  `markScheduleDone(speechId): Promise<void>` (or fold into `saveSchedule`).
 
-### 3.5 The curated speech set
-Ship **at least 4 speeches total including Gettysburg** (recommended 5).
-Every one MUST be pre-1929 or a US government work, verified per speech,
-with `public_domain_basis` and a canonical `source_url` recorded in its
-data module. Favour SHORT orations so a rep stays a ten-minute exercise
-and the hint deck stays scannable.
+Keep all reads index- or key-based. A code review WILL check that no hot
+path calls `getAll()` on the whole store or filters in JS.
 
-**Recommended set (Gettysburg plus four). Substitute any entry with
-another short, clearly pre-1929/US-government oration if you cannot
-confirm a clean public-domain text; record whatever you actually ship:**
+### 3.5 Schedule + countdown logic (`src/lib/schedule.ts`, pure)
+Pure, unit-testable functions so the gating logic is proven without a DOM:
+- `scheduleState(entry: ScheduleEntry | null, now: number): "none" | "waiting" | "ready" | "done"`.
+  `done` when `entry.status === "done"`; else `ready` when
+  `now >= reveal_at`; else `waiting`; `none` when `entry` is null.
+- `revealAtFromDays(now: number, days: number): number` — `now + days*86400000`.
+- `formatCountdown(msRemaining: number): string` — a short human string in
+  product voice, for example `"2 days, 4 hours"` or `"under an hour"`. No
+  em-dashes; swept copy.
+- Validate the gap: `days` is an integer `>= MIN_GAP_DAYS` (MIN = 2, so it
+  is genuinely a multi-day forgetting gap) and `<= MAX_GAP_DAYS` (for
+  example 30). Reject out-of-range input rather than storing it.
 
-| id | title | author | year | public-domain basis |
-|----|-------|--------|------|---------------------|
-| `gettysburg` (shipped) | The Gettysburg Address | Abraham Lincoln | 1863 | Delivered 1863; US government work, published pre-1929. |
-| `second-inaugural` | Second Inaugural Address | Abraham Lincoln | 1865 | Delivered 1865; US government work, published pre-1929. |
-| `aint-i-a-woman` | Ain't I a Woman? | Sojourner Truth | 1851 | Speech delivered 1851; the widely published transcription appeared pre-1929, public domain. Record which published version you use. |
-| `fight-no-more` | I Will Fight No More Forever | Chief Joseph | 1877 | Surrender speech recorded 1877; published pre-1929, public domain. |
-| `right-to-vote` | On Women's Right to Vote | Susan B. Anthony | 1873 | Delivered 1873; published pre-1929, public domain. |
-
-For each NEW speech module the implementer:
-1. Sources verbatim public-domain text from a citable source, records the
-   URL in `source_url`, and writes a one-line `public_domain_basis`.
-2. Splits it into `sentences[]` for alignment (reuse the same manual
-   split style as `gettysburg.ts`; do not depend on the runtime
-   segmenter for the *original*).
-3. Authors a `hint_deck[]` of ordered one-line "moves" in the same voice
-   as the Gettysburg deck: each hint is one short imperative or
-   descriptive line naming the move, not a quotation of the sentence.
-4. **Runs the copy sweep on the hint deck** (em-dashes, en-dashes, banned
-   vocabulary, negative phrasing). The verbatim speech text is exempt;
-   the hints are not.
-
-Do not author the new hint decks inside this spec; author them in the data
-modules where they ship, so they are swept once in situ. The Gettysburg
-deck in `src/data/gettysburg.ts` is the worked reference.
+### 3.6 Calendar file (`src/lib/ics.ts`, pure)
+- `buildIcs({ title, revealAt, now }): string` returns a valid RFC 5545
+  `VCALENDAR` with one `VEVENT`:
+  - `DTSTART` at `revealAt`, `DTEND` at `revealAt + 15min` (a short rep).
+  - `SUMMARY` in product voice, for example
+    `Cold attempt: rebuild The Gettysburg Address from memory`.
+  - `DESCRIPTION` one plain line, for example
+    `Open Franklin's Podium and speak this speech from memory before you look at it.`
+  - `UID` unique and stable per schedule (for example
+    `` `${speechId}-${revealAt}@franklins-podium` ``), `DTSTAMP` at `now`.
+  - CRLF line endings, timestamps in UTC `Z` form, text values escaped
+    (`,`, `;`, `\`, newlines) and long lines folded per the spec.
+- A small download helper offers the string as a
+  `text/calendar` `Blob` via a temporary object URL. It touches no network.
+- The `SUMMARY`/`DESCRIPTION` strings ARE product voice: sweep them.
 
 ---
 
-## 4. Technical design — screens
+## 4. Technical design — navigation and screens
 
-### 4.1 Library (home) screen — new `src/components/Library.tsx`
-- Renders `speeches` as an ordered, keyboard-reachable list. Each row is
-  ONE tappable control (button or link) with an accessible name, showing
-  **title, author, and year**. Rows are at least ~44px tall.
-- A single short intro line above the list states, in positive phrasing,
-  what the screen is for (for example: "Pick a speech to rebuild from
-  memory."). No wall of text.
-- Selecting a row sets `selectedSpeechId`, navigates to `read`, and
-  updates the hash.
-- The list is static and always populated, so there is no loading or
-  empty state to design; there must still never be a blank flash before
-  the list paints (it comes from the bundle, so it paints on first
-  render).
-- Mobile: single-column at 390px, no horizontal scroll.
+### 4.1 Navigation (extend `src/lib/nav.ts`, do not add a router)
+- Add an `archive` view. Hash routes become:
+  - `#/` → library
+  - `#/speech/:id` → read
+  - `#/speech/:id/warmup` → reconstruct (warm-up)
+  - `#/speech/:id/archive` → archive (NEW)
+- Keep `parseHash`/`buildHash` pure and update `nav.test.ts` for the new
+  route. `View` gains `"archive"`.
+- The cold attempt reuses the existing `reconstruct` view. Its `mode`
+  (`warmup` vs `cold`) is held in `App` state, matching how `phase` is
+  already in-memory; the hash need not distinguish them (deep-linking mid
+  cold-attempt is not a requirement). Set `mode` when the attempt starts,
+  read it when saving. Do NOT invent a `cold` hash segment unless it earns
+  its keep; if you do, keep it backward compatible with `warmup`.
+- `App` loads the schedule alongside the latest attempt when a read screen
+  opens (extend the existing async-on-open path). Reserve the schedule
+  panel's layout while it loads so there is no jump.
 
-### 4.2 Read/condense screen — generalize `SpeechScreen`
-- Continues to render the selected speech's title, byline
-  (`author, year`), hint deck, and full text behind the `<details>`
-  disclosure.
-- **Generalize the hint-deck heading** away from the hardcoded "The ten
-  moves" (decks vary in length now). Use a count-agnostic heading such as
-  "The moves".
-- Add ONE obvious primary action to begin the warm-up (for example
-  "Start warm-up"), which navigates to `reconstruct` (phase `record`) for
-  this speech.
-- Add a clearly subordinate back control to return to the library ("All
-  speeches" or "Back to the library").
-- The read screen renders instantly from static data; no async, so no
-  loading state. The only error state is the unknown-id not-found case
-  (§2), which App handles before rendering this component.
-- Keep the existing `SpeechScreen` accessibility (labelled section, real
-  headings).
+### 4.2 Read screen: the schedule panel (`src/components/SchedulePanel.tsx`)
+A new component rendered inside/under the read screen, given the loaded
+`ScheduleEntry | null` and the speech. It never competes with the warm-up
+for the single primary action (see §2 §7).
 
-### 4.3 Reconstruct + study — generalize the existing flow
-- The `record → transcribing → correct → study` machine is reused
-  verbatim, parameterized by the **selected** speech instead of the
-  imported `gettysburg`:
-  - `align(spoken, selectedSpeech.sentences)` uses the selected speech.
-  - `saveAttempt`/`getLatestAttempt` use `selectedSpeech.id` (already the
-    keying scheme).
-  - The `AlignmentSurface` `originalLabel` reflects the selected speaker
-    (for example the author's name, or "The original" as a neutral
-    fallback). Do not hardcode "Lincoln said" for other speeches.
-- On entering the read screen for a speech, restore that speech's latest
-  saved attempt if one exists (so a returning user can jump back to their
-  last study surface for that speech), mirroring the EPIC 1 restore but
-  scoped to the selected id. Keep this to the single overwritable record;
-  do NOT build an attempt list.
-- After a completed alignment or a "record again", the back control still
-  returns to the library.
-- All EPIC 1 designed states (model skeleton + determinate progress,
-  mic-denied, transcribe-failed, no-speech) are preserved and work for the
-  selected speech.
+- **State `none`:** a subordinate panel headed like "Schedule a cold
+  attempt", a short line on why (you speak it cold after a few days, when
+  you have forgotten the words), the gap presets (2 days, 3 days, 1 week)
+  as labelled controls, and, once a gap is chosen, an "Add to calendar"
+  action that downloads the `.ics`. Choosing a gap writes the
+  `ScheduleEntry` and moves to `waiting`. Warm-up remains the primary.
+- **State `waiting`:** show the countdown (`aria-live="polite"`), keep the
+  "Add to calendar" download available, and render the cold-attempt control
+  as clearly closed (disabled with an accessible name like "Cold attempt
+  opens in 2 days"). The warm-up stays the primary and fully usable. Offer
+  a quiet way to change or clear the schedule.
+- **State `ready`:** the cold attempt is the primary action now ("Start
+  cold attempt"); starting it enters `reconstruct` with `mode = "cold"`.
+  The warm-up drops to a secondary control. Completing the cold attempt
+  marks the schedule `done`.
+- **State `done`:** the schedule is spent; offer to schedule another cold
+  attempt (back to `none`) while the archive holds the completed one.
+- The countdown recomputes on a light interval (about once a minute is
+  enough; a per-second tick is unnecessary and wasteful) and on
+  `visibilitychange`/focus so it is correct when the tab returns. Clear the
+  interval on unmount.
 
-### 4.4 First-run walk across the library — update `FirstRunWalk`
-- Extend the walk to span the new screens. 2 to 4 steps, each ONE short
-  imperative sentence, anchored to the real controls the user will touch
-  in order. Recommended four steps:
-  1. Pick a speech.
-  2. Read the moves.
-  3. Record your version.
-  4. Study the pairs.
-- Derive `activeStep` from the current `(view, phase)`:
-  - `library` → step 1 active.
-  - `read` → step 2 active.
-  - `reconstruct` in `record`/`transcribing`/`correct` → step 3 active.
-  - `reconstruct` in `study` → step 4 active.
-- Skippable at any step (the existing Skip control sets `first_run_done`
-  and hides the walk).
-- Appears only until the first completed alignment. Completing one
-  reconstruction sets `first_run_done` (already wired in `handleStudy`);
-  after that the walk never renders again, including across reloads and
-  across speeches.
-- A returning user (flag set) never sees it on any screen. The demo/seed
-  path must not show the walk (it already suppresses it via `isSample`).
-- Do not build EPIC 3+ concepts into the walk (no scheduling step).
+### 4.3 Reconstruct/study: save every attempt (update `App.tsx`)
+- `handleStudy` writes a NEW attempt each time (unique id, `mode` from the
+  current run) instead of overwriting. `markFirstRunDone` stays as is.
+- After a save, if a previous attempt for this speech exists, surface a
+  clearly labelled "Compare with your last attempt" control from the study
+  view (this is the redo-shows-previous-beside-new path, see §4.5).
+- Add a subordinate "Past attempts (N)" link from the read screen and/or
+  the study view into the archive, where N is `countAttempts`. Hide or read
+  "Past attempts" when N is 0.
+- `restoreLatest` keeps working via the reimplemented `getLatestAttempt`.
+- The `AlignmentSurface` differentiator contract is untouched: no `%`, no
+  pass/fail, no per-word error styling, ever, including in compare.
 
-### 4.5 SEED_DEMO / demo path (preserve EPIC 1 behaviour)
-- With `SEED_DEMO` truthy (or `?demo=1`), the app still lands directly on
-  the **featured speech's** populated alignment surface within a minute,
-  no input required, using the bundled `sampleReconstruction` against
-  Gettysburg. Set `selectedSpeechId` to the featured id and go straight to
-  the sample study view, exactly as today. The library need not be shown
-  first in demo mode.
-- Only the featured speech needs a bundled sample. Do not author sample
-  reconstructions for the other speeches (out of scope; the demo
-  requirement is one populated surface with a visible gap).
-- Keep the sample non-empty with at least one visible gap (the EPIC 1
-  contract).
+### 4.4 Archive screen (`src/components/Archive.tsx`, view `archive`)
+- Reached via `#/speech/:id/archive`. Header names the speech and states,
+  in one positive line, what it holds ("Every reconstruction you record,
+  saved on this device.").
+- Renders the first page (cap 10) of `listAttempts` newest-first, with a
+  load-more control that fetches the next page via the returned cursor.
+  Each row: formatted timestamp, a mode label ("Warm-up" / "Cold"), and a
+  short first-line snippet of the corrected transcript. The row is one
+  keyboard-reachable control that opens that attempt's stored alignment in
+  the study surface.
+- Two attempts can be selected for compare (for example a "Compare" toggle
+  on rows, capped at two). With two chosen, a "Compare selected" action
+  opens the compare view.
+- Empty state (no attempts for this speech): the designed positive copy
+  above with a control to start a warm-up. Loading state: skeleton rows
+  that hold layout.
+- A back control returns to the read screen and/or library.
+
+### 4.5 Compare view (`src/components/CompareAttempts.tsx`)
+- Given two `Attempt`s (or one "current" plus the previous), render each on
+  its own `AlignmentSurface`, each under a clear header naming which attempt
+  it is by date and mode ("This attempt" / "Your last attempt, Sep 20").
+- **Layout:** stacked single column at 390px (no horizontal scroll); two
+  columns as a wide-viewport enhancement only. Reuse `AlignmentSurface`
+  unchanged; pass each attempt's stored `alignment` and `originalLabel`
+  (the speaker). Audio replay per attempt is optional; if shown, each
+  surface plays its own stored audio.
+- **No ranking, no diff-of-diffs, no aggregate.** The two surfaces sit
+  together and the user reads them. Any UI that declares one attempt better
+  is a differentiator failure.
+- One-attempt state: a positive line explaining a second attempt is needed
+  to compare, plus a control to record one. Never a broken compare.
+
+### 4.6 SEED_DEMO / demo path (preserve prior behaviour)
+- With `SEED_DEMO` (or `?demo=1`), the app still lands directly on the
+  featured speech's populated sample alignment surface within a minute, no
+  input, no schedule, no walk. The archive/schedule features do not alter
+  the demo entry. Do not seed fake attempts or a fake schedule for the demo.
 
 ---
 
 ## 5. Ordered task list (each with acceptance criteria)
 
-**T1 — Speech registry + curated data modules.**
-Add `src/data/speeches.ts` (`speeches`, `getSpeech`, `featuredSpeechId`)
-and at least three new `src/data/<id>.ts` modules (recommended set in
-§3.5), each a valid `Speech` with verbatim public-domain text,
-`sentences[]`, an authored `hint_deck[]`, a recorded `public_domain_basis`
-and `source_url`.
-*Done when:* the registry lists at least 4 speeches including Gettysburg;
-every speech is pre-1929 or a US government work with its basis recorded
-in data; a unit test asserts each speech has non-empty `title`, `author`,
-numeric `year`, non-empty `sentences[]` and `hint_deck[]`, a recorded
-`public_domain_basis`, and (guard) that its `hint_deck` contains no `%`
-and no banned phrasing.
+**T1 — Archive + schedule persistence (the migration).**
+Bump `DB_VERSION` to 2. Stop keying attempts by `speech_id`; write unique
+ids. Add the `by_speech_created` compound index and the `schedules` store
+in `onupgradeneeded`. Add `listAttempts` (paginated cursor), `countAttempts`
+(index count), `getAttempt`, and schedule read/write, all index- or
+key-based. Add `mode` to `Attempt` and `ScheduleEntry` to `src/types.ts`.
+*Done when:* unit tests (see §6, using `fake-indexeddb`) prove that two
+attempts for one speech coexist without overwriting; a pre-v1 record
+survives the upgrade and appears as that speech's oldest attempt;
+`getLatestAttempt` returns the newest; `listAttempts` returns newest-first,
+respects the page cap, and pages through with the cursor; `countAttempts`
+matches; `getAttempt` fetches by id; schedules round-trip by `speech_id`;
+and no archive read calls `getAll()` on the whole store (assert via the API
+shape and a test that a large unrelated-speech population does not appear in
+or slow a small speech's query).
 
-**T2 — Library (home) screen.**
-`src/components/Library.tsx` renders the registry as an accessible,
-keyboard-reachable list of rows showing title, author, year, each row a
-single control that selects the speech. Positive one-line intro. Usable at
-390px with no horizontal scroll.
-*Done when:* a component test renders all curated speeches with their
-title/author/year and confirms selecting a row invokes the select
-callback with the right id; the intro copy is positive (no "no speeches
-yet" style text); rows meet the ~44px target.
+**T2 — Schedule + `.ics` pure logic.**
+Add `src/lib/schedule.ts` (`scheduleState`, `revealAtFromDays`,
+`formatCountdown`, gap validation with MIN/MAX days) and `src/lib/ics.ts`
+(`buildIcs`, download helper).
+*Done when:* unit tests cover `scheduleState` across none/waiting/ready/done
+with a fixed `now`; gap validation rejects sub-minimum and over-maximum
+values; `formatCountdown` renders swept, em-dash-free strings; `buildIcs`
+emits a valid `VCALENDAR`/`VEVENT` with `DTSTART` at the reveal, a unique
+`UID`, CRLF endings, escaped text, and a copy-swept `SUMMARY`/`DESCRIPTION`
+(no em-dash, no banned vocabulary, no "unlock").
 
-**T3 — Navigation and view state.**
-`App` holds `view` (`library | read | reconstruct`) and
-`selectedSpeechId`, synced to the URL hash (`#/`, `#/speech/:id`,
-`#/speech/:id/warmup`), with `hashchange` wired so Back/Forward work.
-Unknown id renders the not-found state routing back to the library.
-*Done when:* an E2E test navigates library → read → record → study by
-clicking real controls; the browser Back button returns to the prior
-view; deep-linking a valid `#/speech/:id` opens that speech's read screen;
-deep-linking an unknown id shows the designed not-found state with a
-working control back to the library; the ASR chunk is still absent from
-the initial JS.
+**T3 — Schedule panel on the read screen.**
+`SchedulePanel` renders the none/waiting/ready/done states, writes the
+schedule on gap choice, offers the `.ics` download, shows the live
+countdown (`aria-live`), and gates the cold attempt while keeping the
+warm-up available. Read screen keeps ONE primary action at a time.
+*Done when:* a component test shows: with no schedule, the presets and a
+warm-up primary render and choosing a preset stores a schedule; in
+`waiting`, the countdown and a closed cold-attempt control render while the
+warm-up stays enabled and "Add to calendar" is present; in `ready`, the
+cold attempt is the primary and starting it reports `mode = "cold"`; the
+panel copy is positive and free of "unlock"/em-dashes.
 
-**T4 — Read/condense screen with warm-up start.**
-Generalize `SpeechScreen`: count-agnostic hint-deck heading, one primary
-"start warm-up" action into `reconstruct`, a subordinate back-to-library
-control. Renders any selected speech from static data instantly.
-*Done when:* a component test renders a non-Gettysburg speech's title,
-byline, hint deck, and full text; the primary action fires the
-start-warm-up callback; a back control fires the back callback; no async
-model dependency on mount.
+**T4 — Save every attempt with mode + restore.**
+`handleStudy` saves a new attempt (unique id, correct `mode`) each time
+rather than overwriting; `restoreLatest` still restores the newest; the
+cold attempt marks its schedule `done` on completion.
+*Done when:* an E2E test does two warm-ups for one speech and both persist
+(the archive shows two rows); the restore-on-reload behaviour still holds
+(newest restored); after a scheduled reveal, completing the cold attempt
+records a `cold` attempt and marks the schedule done (surfaced as the
+`done` panel state).
 
-**T5 — Reconstruct/study generalized to the selected speech.**
-The existing loop aligns against `selectedSpeech.sentences`, saves/loads by
-`selectedSpeech.id`, and labels the original column by the selected
-speaker. Latest attempt restores per speech.
-*Done when:* an E2E test (transcription stubbed via `__E2E_TRANSCRIPT__`)
-completes a warm-up for a NON-Gettysburg speech and reaches a populated
-alignment surface labelled with that speaker; a second visit to that
-speech restores its saved attempt; the alignment surface still shows no
-`%`, no pass/fail, no word-diff error styling (differentiator guard
-preserved).
+**T5 — Archive screen + navigation.**
+Add the `archive` view and `#/speech/:id/archive` route (update
+`nav.ts`/`nav.test.ts`). `Archive` lists a capped, newest-first page with
+load-more, a designed empty state, a loading skeleton, and rows that open a
+stored attempt. Add "Past attempts (N)" entry points.
+*Done when:* an E2E test reaches the archive from the read/study screen,
+sees the saved attempts newest first, loads a second page when there are
+more than the page cap, opens one attempt onto its stored alignment
+surface, and (for a speech with no attempts) sees the designed positive
+empty state with a working warm-up control; `parseHash`/`buildHash` unit
+tests cover the archive route.
 
-**T6 — First-run walk across screens.**
-Update `FirstRunWalk` steps and `App`'s `activeStep` derivation to span
-library → read → record → study; skippable; shown only until the first
-completed alignment; never again.
-*Done when:* an E2E test on a fresh profile sees the walk on the library
-screen, sees the active step advance as it moves through the flow,
-completes one alignment, and confirms the walk is gone and stays gone
-after a reload and when opening a different speech; a fresh profile that
-clicks Skip also never sees it again.
+**T6 — Compare two attempts.**
+`CompareAttempts` renders two attempts on stacked `AlignmentSurface`s
+(single column at 390px). Redoing a speech offers "Compare with your last
+attempt"; the archive lets the user pick any two and compare.
+*Done when:* a component test renders two attempts side by side with
+per-attempt headers (date + mode) and asserts the differentiator guard
+holds in compare (no `%`, no pass/fail, no per-word error class, correct
+speaker label on each original column); an E2E test redoes a speech and
+opens the previous attempt beside the new one; the one-attempt state shows
+the designed "record another to compare" copy, never a broken view.
 
-**T7 — Designed states + mobile pass on the new screens.**
-Library intro and the read-screen not-found state are designed in the
-product's voice and positive; every new screen is usable at 390px with no
-horizontal scroll and ~44px targets; EPIC 1 designed states still work per
-selected speech.
+**T7 — Designed states, mobile pass, README, copy sweep, existing tests.**
+All new surfaces usable at 390px with no horizontal scroll and ~44px
+targets; the schedule/archive/compare designed states are positive and in
+voice; README updated for the spaced loop and archive with accurate
+commands; mechanical copy sweep over every added/changed user-visible
+string including the `.ics` text; existing unit/component/E2E suites pass
+(update any that assumed a single overwritable attempt).
 *Done when:* an E2E test at 390px asserts no horizontal scroll on the
-library, read, record, and study screens; the not-found state renders
-designed copy (not a blank or raw error) with a working back-to-library
-control; existing mic-denied/transcribe-failed/no-speech component tests
-still pass.
-
-**T8 — README + copy sweep + update existing tests.**
-Update the README so it describes a small curated library (not "one
-speech"), keeps the verified run/dev/test commands, and points to
-`src/data/` for speech data. Update the EPIC 1 E2E tests that assumed a
-single screen at `/` (see §6). Mechanical copy sweep over every
-user-visible string added or changed.
-*Done when:* the README no longer claims a single speech and its commands
-still match the actual compose/Dockerfile; the full test suite
-(`npm test` and `./scripts/e2e.sh`) passes; the sweep finds no
-em-dashes/en-dashes, banned LLM vocabulary, or negative empty-state
-phrasing in product-voice strings (speech text and titles exempt).
+schedule panel, archive, and compare views; the sweep finds no
+em-dashes/en-dashes, no banned vocabulary, no "unlock", and no negative
+empty-state phrasing in product-voice strings (verbatim speech text still
+exempt); `npm test` and `./scripts/e2e.sh` both pass, including the updated
+`restore.spec.ts` and any EPIC 1/2 spec touched by the multi-attempt change.
 
 ---
 
 ## 6. Test plan (each acceptance criterion → automated proof)
 
+**Add `fake-indexeddb` as a devDependency** and import it in the db unit
+test (or in `src/test/setup.ts` scoped to db tests) so IndexedDB logic runs
+under Vitest/jsdom. This is the only way to prove indexing and pagination
+deterministically without the browser. It is a dev dependency only; it adds
+no runtime origin or bundle weight.
+
 **Unit (Vitest):**
-- Registry integrity (→ T1): every speech has non-empty title/author,
-  numeric year, non-empty `sentences[]` and `hint_deck[]`, a recorded
-  `public_domain_basis` and `source_url`, and a unique `id`.
-- Public-domain guard (→ T1): every speech's `year` is < 1929 OR its
-  `public_domain_basis` explicitly records a US-government-work basis.
-- Copy-sweep guard on hint decks (→ T1, §8): no hint contains `—`, `–`,
-  `%`, the banned vocabulary, or negative empty-state phrasing.
+- DB archive (→ T1, AC3, AC5): two attempts per speech coexist; a seeded
+  pre-v1 `{id: speechId}` record survives a v2 open and lists as oldest;
+  `getLatestAttempt` newest; `listAttempts` newest-first, page-capped, and
+  cursor-paged; `countAttempts` correct; `getAttempt` by id; populating many
+  attempts for OTHER speeches does not appear in or enlarge one speech's
+  page (index isolation, the fast-at-scale proof).
+- DB schedule (→ T1, AC1): `saveSchedule`/`getSchedule` round-trip by
+  `speech_id`; `markScheduleDone` flips status.
+- Schedule logic (→ T2, AC1): `scheduleState` across none/waiting/ready/done
+  at a fixed `now`; gap validation bounds; `formatCountdown` swept output.
+- ICS (→ T2, AC2): `buildIcs` valid structure, reveal `DTSTART`, unique
+  `UID`, CRLF, escaping; `SUMMARY`/`DESCRIPTION` copy-swept.
+- Nav (→ T5): `parseHash`/`buildHash` cover the archive route and still
+  round-trip library/read/warmup.
 
 **Component (Vitest + Testing Library, jsdom):**
-- Library (→ T2): renders every curated speech with title/author/year;
-  clicking a row calls the select handler with that speech's id; the
-  intro line is present and positive.
-- Read screen (→ T4): renders a non-Gettysburg speech's title, byline,
-  hint deck, and full text with no async dependency; primary action and
-  back control fire their callbacks.
-- Alignment surface differentiator guard (→ T5, carried from EPIC 1):
-  given a fixed `AlignmentPair[]`, the DOM contains no `%`, no pass/fail
-  badge, no per-word error highlight class, and the original column uses
-  the passed-in speaker label.
-- First-run walk (→ T6): renders the correct active step for each
-  `(view, phase)`; hidden when `first_run_done` is set; Skip hides it and
-  sets the flag.
-- Existing designed-state tests (mic-denied, transcribe-failed,
-  no-speech) still pass unchanged (→ T7).
+- SchedulePanel (→ T3, AC1, AC2): renders each state; choosing a preset
+  stores a schedule and moves to waiting; waiting shows the countdown and an
+  available warm-up plus add-to-calendar; ready makes the cold attempt
+  primary; copy positive, no "unlock", no em-dash.
+- Archive (→ T5, AC5): renders a page of rows with timestamp/mode/snippet;
+  load-more requests the next page; empty state is positive; a row click
+  invokes the open handler with the right id.
+- Compare (→ T6, AC4): two attempts render on two alignment surfaces with
+  per-attempt headers; differentiator guard (no `%`, no pass/fail badge, no
+  per-word error class) holds; the one-attempt state renders its designed
+  copy.
+- Alignment differentiator guard (carried from prior EPICs) still passes.
 
 **E2E (Playwright), transcription stubbed via `__E2E_TRANSCRIPT__`:**
-- Library-to-study happy path (→ T3, T5): from `/`, click a speech, read,
-  record (stubbed transcript), proceed through correction, reach a
-  populated alignment surface for the chosen speech.
-- Non-Gettysburg loop (→ T5): run the happy path for a second speech and
-  assert the original column is labelled with that speaker and the surface
-  has no `%`/pass-fail/red-ink.
-- Navigation and deep-link (→ T3): Back button returns to the prior view;
-  a valid `#/speech/:id` deep-link opens that read screen; an unknown id
-  shows the not-found state with a working back control.
-- First-run walk across screens (→ T6): fresh profile sees the walk on the
-  library, the active step advances through the flow, and after one
-  completed alignment the walk is gone and stays gone across a reload and
-  when opening another speech.
-- Restore per speech (→ T5): after completing a warm-up, reloading and
-  reopening that speech restores its saved attempt/study surface.
-- Mobile (→ T7): at 390px, no horizontal scroll on the library, read,
-  record, and study screens.
-- SEED_DEMO / demo (→ §4.5, carried from EPIC 1): with the demo flag on,
-  the featured speech's populated alignment surface renders within a
-  minute with a visible gap and no manual input, and the walk does not
-  show.
-- Header/isolation and no-upload E2E from EPIC 1 (→ §5 security) still
-  pass unchanged: same-origin GETs only, `crossOriginIsolated === true`,
-  header set intact.
+- Spaced loop (→ AC1, AC2): open a speech, schedule a cold attempt, see the
+  countdown, confirm the cold attempt is closed while the warm-up is still
+  available, and download the `.ics` (assert the download fires with a
+  `.ics` filename and `text/calendar` content). Use Playwright's clock
+  (`page.clock`) to advance past `reveal_at` and confirm the cold attempt
+  becomes available and, once completed, records a `cold` attempt. If
+  `page.clock` proves unreliable against the app's timers, the unit
+  `scheduleState` test is the primary gating proof and the E2E may instead
+  seed a past-reveal schedule through the app's own storage path.
+- Archive accumulation (→ AC3, AC5): complete two warm-ups for one speech,
+  open the archive, see both newest-first; with more than the page cap,
+  load-more reveals older ones; opening a row shows that attempt's stored
+  alignment.
+- Compare (→ AC4): redo a speech and open the previous attempt beside the
+  new one; assert both alignment surfaces render and neither shows a `%` or
+  pass/fail.
+- Mobile (→ QUALITY BAR §2): at 390px, no horizontal scroll on the schedule
+  panel, archive, and compare views.
+- Restore (→ regression): the existing restore-on-reload E2E still passes
+  against the multi-attempt store (newest restored).
+- SEED_DEMO / demo (→ §4.6, carried): the demo still lands on the featured
+  populated sample surface within a minute, no schedule, no walk.
+- Header/isolation and no-upload E2E (carried): same-origin GETs only,
+  `crossOriginIsolated === true`, headers intact. The `.ics` download is a
+  local `blob:`/object URL, not a network request.
 
-**Existing tests to update (part of T8):**
-- `e2e/first-run-walk.spec.ts` currently expects the Gettysburg heading at
-  `/`. With `/` now the library, update it to expect the library screen,
-  then drive the walk across the new navigation.
-- Any EPIC 1 E2E spec that assumed the single reconstruction screen sat
-  directly at `/` (for example `first-render`, `record-flow`, `mobile`)
-  must navigate through the library → read → record first. Preserve what
-  each originally proved (fast first render, the record flow reaching
-  study, no horizontal scroll); only adjust the entry navigation.
-- `demo.spec.ts` must still pass; adjust only if the demo entry path
-  changed.
+**Existing tests to update (part of T7):**
+- `restore.spec.ts`: still valid (one attempt, newest restored); re-run
+  against the new store and confirm it passes; extend or leave as is.
+- Any spec or component test that assumed one overwritable attempt per
+  speech: update to the append model. Preserve what each originally proved.
 
-**Copy sweep (mechanical, part of T8 DONE):** grep every user-visible
-string added or changed for `—`, `–`, the banned vocabulary, and negative
-empty-state phrasing; fix hits. New speeches' `full_text`/`sentences[]`,
-titles, and author names are exempt as verbatim historical quotation; the
-hint decks and all UI chrome are swept.
+**Copy sweep (mechanical, part of T7 DONE):** grep every added/changed
+user-visible string (schedule panel, presets, countdown, add-to-calendar,
+`.ics` `SUMMARY`/`DESCRIPTION`, archive intro/empty/rows, compare headers
+and one-attempt copy) for `—`, `–`, the banned vocabulary, the word
+"unlock", and negative empty-state phrasing; fix every hit. Verbatim speech
+`full_text`/`sentences[]`, titles, and author names stay exempt.
 
 ---
 
 ## 7. Notes, decisions, and exemptions
-
-- **Verbatim historical text is exempt from the copy sweep.** Each
-  speech's `full_text`, `sentences[]`, `title`, and `author` reproduce
-  public-domain source material and must not be "corrected" (this is why
-  Gettysburg keeps its em-dashes). Hint decks and every UI string are
-  product voice and ARE swept.
-- **No IndexedDB migration.** The store already keys attempts by
-  `speech_id`, so multiple speeches coexist with no schema change. Keep
-  `DB_VERSION` at 1. The archive/list is EPIC 3; do not add a list query
-  or index here.
-- **Reuse the alignment engine untouched.** `align`, `cleanTranscript`,
-  and `segmentSentences` are correct and tested; this EPIC only feeds them
-  a chosen speech's sentences. Any real defect found while wiring gets the
-  minimum fix plus a note, not a redesign.
-- **Warm-up only.** Every reconstruction here is a same-day warm-up. Do
-  not add mode flags, scheduling, countdowns, or a `cold` path; EPIC 3
-  owns those.
-- **Hint decks may be shorter than the sentence list** for longer
-  speeches (§3.4). Keep each deck scannable and favour short orations so
-  the rep and the deck both stay small.
-- **Transcription-fidelity finding (carried from EPIC 1 / VALIDATION
-  constraint 2):** if, while testing warm-ups on the new speeches, a large
-  share of flagged gaps trace to transcriber errors rather than the
-  speaker, report it in `result.json` `summary` and raise a
-  `requested_task` for the typed-reconstruction fallback. Do NOT build the
-  typed fallback here (out of scope).
+- **The migration is the risk; keep it forward-only.** Never delete or
+  rewrite existing rows. Bumping to v2 and adding indexes over the existing
+  store turns the one saved attempt into the archive's first entry for free.
+  Do not attempt a data transform.
+- **Recompute waiting/ready from the clock, persist only `done`.** A user
+  who leaves the tab open across the reveal, or reloads after it, must see
+  the cold attempt open without any background job. Storing `status` as the
+  source of truth for waiting/ready would go stale.
+- **`page.clock` for the gate transition, `scheduleState` unit test as the
+  floor.** The pure gating function is the deterministic proof; the E2E
+  clock test is the integration proof and may be softened to a seeded
+  past-reveal if the timer interplay is flaky. Never ship the gate unproven.
+- **Reuse the alignment engine and surface untouched.** Compare renders two
+  existing alignments; it computes nothing new. Any real defect found while
+  wiring gets the minimum fix plus a note, not a redesign.
+- **Audio storage grows unbounded by design in this EPIC.** Every attempt
+  keeps its optional audio. Pagination keeps the VIEWS fast (the acceptance
+  criterion), but total on-device storage grows with use. Eviction/retention
+  is explicitly out of scope; if testing shows it is a near-term problem,
+  report it and raise a `requested_task`, do not build it here.
+- **Export stays in EPIC 4.** This EPIC persists and displays the archive;
+  writing it to a JSON/Markdown file is the next EPIC. The `.ics` is the
+  only file this EPIC produces, and it is a reminder, not a data export.
 
 ## 8. Assumptions (flagged; none block the build)
 - The planner's scope block for this EPIC was present and authoritative;
   this spec expands it directly. No blocking questions.
-- The recommended curated speech set (§3.5) is a starting point chosen for
-  clear public-domain provenance and short length; the implementer may
-  substitute any speech that meets the pre-1929/US-government rule and must
-  record whatever is actually shipped. The only hard requirements are: at
-  least 4 speeches total including Gettysburg, and every one verified
-  public-domain with its basis in data.
-- Hash-based navigation is chosen so the EPIC 1 static-host header config
-  needs no route-rewriting change; if the implementer prefers History-API
-  routing they must add nginx SPA fallback without weakening the CSP/COOP/
-  COEP set, and prove the header E2E still passes.
+- Gap presets (2 days, 3 days, 1 week) and a 15-minute calendar event are
+  chosen for a short daily rep; the implementer may adjust the exact preset
+  set within the MIN/MAX-day bounds as long as every scheduled gap is
+  genuinely multi-day (MIN 2 days).
+- `fake-indexeddb` is assumed acceptable as a dev-only test dependency; it
+  adds no runtime code or origin. If the implementer prefers to prove the
+  archive purely through E2E in a real browser instead, that is acceptable
+  provided every §6 DB unit criterion is proven somewhere and the
+  index-not-scan guarantee is demonstrated.

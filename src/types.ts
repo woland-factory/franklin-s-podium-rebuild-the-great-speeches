@@ -18,12 +18,24 @@ export interface AlignmentPair {
   relation: AlignmentRelation;
 }
 
+export type AttemptMode = "warmup" | "cold";
+
 export interface Attempt {
   id: string;
   speech_id: string;
   created_at: number;
+  mode: AttemptMode;
   transcript: string;
   corrected_transcript: string;
   audio_blob: Blob | null;
   alignment: AlignmentPair[];
+}
+
+export type ScheduleStatus = "waiting" | "ready" | "done";
+
+export interface ScheduleEntry {
+  speech_id: string;
+  condensed_at: number; // when the user scheduled (proxy for "has read the moves")
+  reveal_at: number; // epoch ms when the cold attempt opens
+  status: ScheduleStatus;
 }

@@ -176,9 +176,10 @@ export function App() {
     if (blob) setAudioUrl(URL.createObjectURL(blob));
 
     void saveAttempt({
-      id: speech.id,
+      id: crypto.randomUUID(),
       speech_id: speech.id,
       created_at: Date.now(),
+      mode: "warmup",
       transcript: rawTranscript,
       corrected_transcript: text,
       audio_blob: blob,

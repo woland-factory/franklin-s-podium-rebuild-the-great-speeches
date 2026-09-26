@@ -1,4 +1,4 @@
-# EPIC SPEC — The spaced loop and the attempt archive
+# EPIC SPEC — Stolen-phrases ledger, paste-your-own, and export
 
 ## Quality differentiator (read this first)
 
@@ -9,73 +9,97 @@ checkers punish any deviation. Franklin's Podium aligns your spoken
 reconstruction to the original sentence by sentence, tolerant of
 paraphrase, and shows the two side by side so you see the move you missed.
 
-**What this demands of THIS EPIC:** the alignment surface already exists
-(EPIC 1) and is reachable on day one for any curated speech (EPIC 2). This
-EPIC makes the practice *compounding*: it enforces the forgetting gap that
-makes a cold attempt worth studying, and it keeps every attempt so a
-returning user can lay this month's reconstruction beside last month's and
-see the distance closed. The compare view is a second appearance of the
-same neutral surface, applied to two of the user's own takes. It inherits
-the differentiator contract in full: no percentage, no pass/fail, no
-word-level red ink, ever, not even when comparing two attempts to each
-other. A comparison that ranks one attempt "better" than another is a
-product failure even if every test passes. Show the two; let the user
-read the gap.
+**What this demands of THIS EPIC:** two of the four criteria touch the
+alignment surface directly, so they are held to the differentiator, not
+just the baseline bar.
+
+- **Save-to-ledger lives ON the alignment surface.** The one-tap "keep"
+  control must read as "this line is worth stealing", never as "you got
+  this line wrong". It is an additive, positive affordance on the
+  original (the master's) side of a pair. It MUST NOT introduce a score,
+  a count of "missed" lines, a pass/fail badge, or per-word red ink, and
+  it MUST NOT change the neutral framing of the surface. A ledger that
+  turns the study surface into a scorecard is a differentiator failure
+  even if every test passes.
+- **Paste-your-own runs the SAME surface.** Pasted text reaches the exact
+  same meaning-tolerant alignment surface, with the same neutral framing.
+  The only difference is the original column is labelled as the user's own
+  text, not a named author. No new alignment algorithm, no scoring for
+  pasted material.
 
 ---
 
 ## 1. Scope
 
-### In scope
-On top of the EPIC 1 reconstruction loop and the EPIC 2 library, build the
-mechanism that turns a one-off reconstruction into deliberate practice:
+This EPIC adds the product's second durable artifact (the ledger of
+stolen phrases) and the modern-material path (practice your own text),
+plus data export. It builds directly on the EPIC 1 reconstruction loop,
+the EPIC 2 library and read screen, and the EPIC 3 archive/schedule
+store. It reuses `align()`, `cleanTranscript()`, `segmentSentences()`,
+and `AlignmentSurface` unchanged.
 
-1. **The scheduled cold attempt.** From a speech's read screen, the user
-   schedules a cold attempt some days out. The gap is stored locally. The
-   cold attempt is held closed until the reveal time, with a clear
-   countdown, while the same-day warm-up stays available the whole time.
-2. **A calendar file.** The user can download an `.ics` file for the reveal
-   date so the reminder lives in their own calendar. No email, no push.
-3. **The accumulating archive.** Every reconstruction (warm-up or cold) is
-   saved to a per-speech archive with its timestamp, transcript, alignment,
-   and optional audio. A per-speech archive screen lists them newest first.
-4. **Compare two attempts.** Redoing a speech shows a previous attempt
-   beside the new one, and from the archive the user can pick any two of
-   their attempts and view them side by side, each rendered on the same
-   neutral alignment surface.
-5. **Fast at scale.** The archive stays fast as it grows: lists are
-   paginated (a capped page plus a load-more control), and every IndexedDB
-   read on a hot path goes through an index. No view gets slower with every
-   attempt saved.
+### In scope
+
+1. **Save a phrase to the ledger (AC1).** From any alignment pair that has
+   an original line, one tap keeps that line to the ledger, tagged with
+   its source (the speech, or the user's own pasted text). The control
+   shows kept/not-kept state and toggles, so a second tap removes it. This
+   works everywhere the alignment surface renders: the live study view,
+   an opened archived attempt, and each pane of the compare view.
+
+2. **The ledger screen (AC2).** A new top-level screen at `#/ledger` lists
+   every kept line, grouped by its source. Each group is headed by the
+   source title. Each row shows the kept line and its saved date, with a
+   remove control. A designed, positive empty state tells a first-time
+   user exactly how to add the first line. The list is index-backed and
+   paginated (capped page plus load-more), never an unbounded render.
+
+3. **Paste-your-own-text mode (AC3).** A new screen at `#/paste` accepts
+   pasted text. The input is size-capped and treated strictly as text
+   (never HTML). On submit the app extracts a one-line-per-sentence hint
+   deck **deterministically with no LLM**, stores the pasted text as a
+   local practice source, and drops the user into the same
+   read → warm-up → transcribe → correct → align → study → archive loop
+   the curated speeches use. Kept lines from a pasted source tag to that
+   source in the ledger.
+
+4. **Export (AC4).** A new screen at `#/settings` writes the archive (all
+   attempts) and the ledger (all kept lines) to a JSON file and to a
+   Markdown file, each offered as a local download. It also carries the
+   plain statement that nothing leaves the device.
 
 ### Out of scope (binding non-goals — do not build)
-- **No trendline charts, scorelines, streak counters, or analytics of any
-  kind.** The archive is a list and a side-by-side compare, never a graph,
-  a "you improved" verdict, or an aggregate number that ranks attempts.
-- **No ledger / stolen-phrases saving**, and no save-a-phrase control
-  anywhere. That is EPIC 4.
-- **No paste-your-own-text mode and no hint extraction.** EPIC 4.
-- **No export of the archive to a file.** JSON/Markdown export is EPIC 4.
-  This EPIC persists and displays the archive; downloading it is later.
-- **No reminder emails and no push notifications.** The return nudge is the
-  `.ics` file only. No mailer call, no service worker, no Notification API.
-- **No scores, grades, percentages, pass/fail, or word-level red ink**,
-  anywhere, on any speech, including the compare view.
-- **No new alignment algorithm and no three-way alignment.** Reuse
-  `align()`, `cleanTranscript`, `segmentSentences` exactly as they are.
-  Compare renders two independent existing alignments; it does not compute
-  a new cross-attempt alignment.
-- **No accounts, no server storage, no network upload, no cloud
-  transcription, no runtime LLM, no BYOK, no gateway calls.** Fully
-  client-side. The only new artifact leaving the app is the `.ics` file the
-  user downloads to their own machine.
-- **No storage-eviction / retention policy.** Attempts (including audio)
-  persist until the browser clears them. If unbounded audio storage looks
-  like a real risk in testing, report it and raise a `requested_task`; do
-  not build eviction here (it would be drift, and it risks deleting a
-  user's own record).
-- **No changes to the first-run walk.** The EPIC 2 walk teaches the warm-up
-  loop and ends at the first alignment. Do not add a scheduling step to it.
+
+- **No cloud sync, no server, no accounts, no upload.** Fully
+  client-side, exactly as today. The only artifacts leaving the app are
+  files the user downloads to their own machine (the export files, and
+  the EPIC 3 `.ics`).
+- **No sharing or import from other users.** Export is a one-way
+  download of the user's own data. Do NOT build an import/restore path,
+  a share link, or any read of another user's file. (Re-importing an
+  exported file is a plausible future task; raise it via
+  `requested_tasks`, do not build it here.)
+- **No LLM-generated hints for pasted text.** Hint extraction is
+  mechanical and deterministic. No BYOK surface, no gateway call, no
+  runtime LLM anywhere. The pasted-text hint is a cue derived from the
+  sentence itself, never a paraphrase produced by a model.
+- **No scores, grades, percentages, pass/fail, streaks, or word-level
+  red ink**, anywhere, including on pasted-text alignments and including
+  the ledger. The ledger counts nothing about performance.
+- **No note editor on ledger items.** The `LedgerItem.note` field is
+  reserved in the type for forward-compatibility, but this EPIC ships no
+  UI to write or edit a note. Adding one is drift.
+- **No new alignment algorithm and no changes to the alignment engine.**
+  Pasted text is segmented and aligned with the existing functions.
+- **No changes to the EPIC 2 first-run walk.** The walk teaches the
+  curated warm-up loop and ends at the first alignment. Do not add a
+  ledger, paste, or export step to it.
+- **No scheduling requirement for pasted sources.** The spaced cold-attempt
+  mechanism is EPIC 3 and is not a criterion here. See §4.4 for how the
+  read screen is reused.
+- **No audio in the export.** Attempt audio blobs stay on the device and
+  are not written to the JSON or Markdown files. The export is the text
+  record (transcript, alignment, ledger).
 
 ---
 
@@ -83,505 +107,627 @@ mechanism that turns a one-off reconstruction into deliberate practice:
 
 The quality bar is spec. The clauses that bite here, made concrete:
 
-- **Perceived speed (§1).** This is the headline acceptance criterion for
-  this EPIC, so it is load-bearing, not a footnote.
-  - Every per-speech read on a hot path (latest attempt, attempt count,
-    a page of attempts, the schedule) MUST go through an IndexedDB index or
-    a primary-key lookup. NO full-store scan and NO `getAll()` that returns
-    every attempt to filter in JS. A store that grows to hundreds of
-    attempts across speeches must not slow the archive of a speech with
-    three.
-  - The archive list is paginated with a fixed page size (default 10) and a
+- **Perceived speed (§1).**
+  - Ledger reads MUST be index-backed. Grouping by source uses a compound
+    index range scan, never `getAll()` on the whole store filtered in JS.
+    A ledger of hundreds of lines across many sources must not slow the
+    view of a source with three kept lines.
+  - The ledger screen is paginated: a fixed page cap (default 30) plus a
     load-more control. It never renders an unbounded list.
-  - Scheduling, downloading the `.ics`, opening the archive, and switching
-    the compared attempt all give feedback within 100ms (pressed states,
-    immediate view change, optimistic UI). The `.ics` is built synchronously
-    in-memory and downloaded; no spinner.
-  - Adding the archive/schedule code must not pull the ASR/model chunk into
-    the initial bundle (it stays dynamically imported, as in EPIC 1).
-- **Mobile-first (§2).** Every new surface fully usable at 390px: the
-  schedule panel, the countdown, the archive list, and the compare view.
-  No horizontal scroll. Touch targets (gap presets, add-to-calendar,
-  archive rows, compare selectors) at least ~44px. The compare view MUST
-  degrade to a single stacked column at 390px (two full alignment surfaces
-  side by side would overflow); side-by-side columns are a wide-viewport
-  enhancement only.
+  - Tapping keep/remove gives feedback within 100ms (optimistic toggle of
+    the control's state; the IndexedDB write happens in the background).
+  - Extracting a hint deck from pasted text is synchronous, in-memory, and
+    deterministic; for the size-capped input it completes well within
+    100ms with no spinner. If it ever exceeded that, show inline progress,
+    but the size cap keeps it instant.
+  - Building and downloading the export runs off a deliberate button press;
+    it reads all stores once (not a hot path) and builds the files
+    in-memory. Give a pressed/working state on the button so the press is
+    acknowledged within 100ms.
+  - The new screens must not pull the ASR/model chunk into the initial
+    bundle. It stays dynamically imported exactly as today.
+
+- **Mobile-first (§2).** Every new surface fully usable at 390px with no
+  horizontal scroll: the ledger (grouped list), the paste screen
+  (textarea and its controls), the settings/export screen, and the keep
+  control on the alignment surface. Touch targets (keep toggle, remove,
+  load-more, extract, export buttons, nav links) at least ~44px. The keep
+  control sits within each pair without forcing the pair to overflow at
+  390px; the alignment surface stays single-column on mobile as today.
+
 - **Designed states (§3), per surface:**
-  - *Schedule panel:* three states, each designed and positive. No schedule
-    yet (invite to schedule a cold attempt, warm-up offered). Waiting
-    (countdown, warm-up still offered, add-to-calendar offered). Ready (the
-    cold attempt is open now). The waiting-vs-ready split loads without a
-    layout jump: reserve the panel's space while the schedule loads.
-  - *Archive:* a designed empty state for a speech with no attempts yet
-    ("Your attempts collect here. Warm up to add the first.") in positive
-    voice; a loading state that holds layout (skeleton rows, not a white
-    gap) while the first page reads; the populated list otherwise.
-  - *Compare:* if only one attempt exists there is nothing to compare;
-    say so in the product's voice and offer to record another, never a
-    broken or blank compare.
-  - EPIC 1/2 states (model skeleton, mic-denied, transcribe-failed,
-    no-speech, unknown-speech not-found) carry over unchanged.
-- **Radically simple interface (§7).** The read screen keeps ONE primary
-  action at a time. Before a reveal, the primary is the warm-up; the
-  schedule sits as a clearly subordinate panel. Once a scheduled reveal has
-  arrived, the primary becomes the cold attempt and the warm-up drops to
-  secondary. Never show two competing primary buttons. The archive row is
-  a timestamp, a mode label, and a short line, not a paragraph. Cut words.
+  - *Ledger:* a designed, positive empty state (a first-time user sees
+    what the screen is for and the exact way to add the first line, in
+    positive voice); a loading state that holds layout (skeleton rows, not
+    a white gap) while the first page reads; the grouped list otherwise.
+  - *Paste:* an empty state that shows what to do (a labelled textarea
+    with a real example placeholder, one obvious primary action); a
+    designed error when the text is too long or too short, in the
+    product's voice with what to do next (never a raw limit dump or a dead
+    end); a brief working state while the source is stored and the deck
+    built.
+  - *Settings/export:* if there is nothing to export yet (no attempts and
+    no ledger), the export controls say so positively and point the user
+    at recording a first reconstruction, rather than downloading an empty
+    file. Otherwise the two download actions plus the privacy statement.
+  - The keep control has a clear kept vs not-kept state; when the ledger
+    has zero items the surface still works (keep just adds the first).
+  - EPIC 1/2/3 states carry over unchanged.
+
+- **Radically simple interface (§7).** Each new screen has ONE obvious
+  primary action. Paste: the textarea and its single "find the moves"
+  action; secondary is back. Settings: the export actions are the point;
+  the privacy line is a short statement, not an essay. The ledger row is a
+  kept line plus its date and a quiet remove control, not a paragraph. The
+  keep control is a short label or a labelled icon, not a sentence. Cut
+  words. Prefer the example placeholder in the paste box over instructions.
+
 - **Copy sounds human (§8).** Sweep every user-visible string you add or
-  change: the schedule panel, gap presets, countdown text, add-to-calendar
-  label, the `.ics` `SUMMARY`/`DESCRIPTION` (these land in the user's
-  calendar and ARE product voice), archive intro/empty/rows, compare
-  headers and its one-attempt state. Ban em-dashes and en-dashes, the
-  banned LLM vocabulary, and negative empty-state phrasing. Note in
-  particular: **do not use the word "unlock"** in any user-visible string
-  (it is on the banned list). Use "opens", "ready", or "available".
-- **Accessibility (§6).** The countdown updates via `aria-live="polite"` so
-  it is announced without stealing focus; it is not the only signal (the
-  cold-attempt control's disabled state and label also convey it). Gap
-  presets are real, labelled buttons or a labelled radio group. The archive
-  is a real list with keyboard-reachable rows, each with an accessible name
-  including its date and mode. Compare selectors are labelled. Every new
-  screen has a proper `<h1>`/`<h2>` structure and visible focus states.
+  change: the keep control (kept and not-kept labels and their accessible
+  names), the ledger heading/intro/empty-state/rows/remove, the paste
+  heading/placeholder/primary action/error messages, the settings heading,
+  privacy statement, export button labels, the export files' own static
+  labels and headings (the Markdown export headings and the JSON key
+  labels the user reads ARE product voice), and any new nav links. Ban
+  em-dashes and en-dashes, the banned LLM vocabulary, negative empty-state
+  phrasing, and the word "unlock". Empty and error states say what IS and
+  what to DO. Verbatim speech text, author names, and the user's own
+  pasted text are exempt (never rewrite the user's paste or a quotation).
+
+- **Accessibility (§6).** The keep toggle is a real button with an
+  accessible name that includes its state (for example "Keep this line" /
+  "Remove this line from your ledger") and a visible focus state; toggling
+  it announces the change (`aria-pressed` reflects kept state). The ledger
+  is a real list with a heading per source group and keyboard-reachable
+  rows and remove controls. The paste textarea has an associated label.
+  The export buttons are labelled. Every new screen has a proper
+  `<h1>`/`<h2>` structure and visible focus states. Nav links are reachable
+  by keyboard.
+
 - **Security hygiene (§5).** No new server, no upload, no new external
-  fetch, no new origin. The `.ics` is generated in-memory and offered as a
-  `Blob` download; it never round-trips a server. The CSP/COOP/COEP posture
-  from EPIC 1 is untouched. There is still no untrusted network input; the
-  only user input is the chosen gap (validate it: a positive integer number
-  of days within a sane bound; reject anything that is not a genuine
-  multi-day gap).
-- **README (§9).** Add the spaced loop and the archive to the "how it
-  works" description: the app now holds you to a forgetting gap, gives you a
-  calendar file, and keeps every attempt so you can compare them. Keep the
-  run/dev/test commands accurate. Point at where the new code lives
-  (`src/lib/db.ts` for persistence, `src/lib/ics.ts` and
-  `src/lib/schedule.ts` for the loop). No pipeline internals.
+  fetch, no new origin. Pasted text is validated at the boundary: it is
+  size-capped (reject over the cap with a designed message) and handled as
+  a plain string, never rendered as HTML (no `dangerouslySetInnerHTML`; the
+  stored `text` and derived `sentences`/`hints` are React text nodes).
+  Export files are built in-memory and offered as `Blob` downloads; they
+  never round-trip a server. The CSP/COOP/COEP posture from EPIC 1 is
+  untouched. No PII in logs; do not log pasted text.
+
+- **README (§9).** Add the ledger, paste-your-own, and export to the "how
+  it works" description: keep the best lines you find in a ledger grouped
+  by source, practice against your own pasted text with the same loop, and
+  download your archive and ledger as JSON or Markdown files you keep. Keep
+  the run/dev/test commands accurate. Point at where the new code lives
+  (`src/lib/hints.ts` for deterministic hint extraction, `src/lib/export.ts`
+  for the export files, `src/lib/db.ts` for ledger and user-text storage,
+  `src/components/Ledger.tsx`, `src/components/PasteScreen.tsx`,
+  `src/components/Settings.tsx`). No pipeline internals.
 
 ---
 
 ## 3. Technical design — data model and persistence
 
 ### 3.1 What exists (build on it, do not rebuild)
-- `src/lib/db.ts` opens `franklins-podium` at `DB_VERSION = 1` with a single
-  object store `attempts` keyed by `id`, where today `saveAttempt` forces
-  `id = speech_id` so exactly one overwritable attempt exists per speech.
-  `getLatestAttempt(speechId)` does a primary-key `get(speechId)`.
-- `first_run_done` is a `localStorage` flag; keep it there.
-- `src/types.ts` defines `Attempt` (`id`, `speech_id`, `created_at`,
-  `transcript`, `corrected_transcript`, `audio_blob`, `alignment`).
-- `src/App.tsx` runs `record → transcribing → correct → study`, saves the
-  attempt in `handleStudy`, and restores one attempt per speech via
-  `restoreLatest`.
-- The IndexedDB store is schemaless, so adding fields to `Attempt` is a
-  non-breaking forward add.
 
-### 3.2 Forward-only migration to a real archive (`DB_VERSION` 1 → 2)
-The single overwrite-by-`speech_id` scheme is the thing that must change,
-and it is the riskiest part of this EPIC. Do it as a forward-only
-migration; never rewrite or delete existing records.
+- `src/lib/db.ts` opens `franklins-podium` at `DB_VERSION = 2` with two
+  stores: `attempts` (keyPath `id`, compound index `by_speech_created` on
+  `["speech_id", "created_at"]`) and `schedules` (keyPath `speech_id`).
+  Reads are index- or key-based; the migration guard rejects when
+  `indexedDB` is undefined so jsdom degrades instead of throwing.
+- `saveAttempt` writes a unique `id` (`crypto.randomUUID()`); two attempts
+  per speech coexist. `listAttempts`, `countAttempts`, `getAttempt`,
+  `getLatestAttempt` are all index- or key-backed and paginated where they
+  return lists.
+- `src/types.ts` defines `Speech`, `AlignmentPair`
+  (`{ spoken, original, relation }`), `Attempt` (with `mode`), and
+  `ScheduleEntry`.
+- `src/data/speeches.ts` exposes the curated library and
+  `getSpeech(id)` (synchronous map lookup).
+- `src/App.tsx` resolves `selectedSpeech = getSpeech(selectedSpeechId)`
+  synchronously and drives the record → transcribe → correct → study loop,
+  saving each attempt keyed by `speech_id`.
+- `AlignmentSurface` is presentational: it takes `pairs`, `audioUrl`,
+  `originalLabel`. It writes nothing.
 
-- **Bump `DB_VERSION` to `2`.**
-- **Attempt id becomes unique per attempt.** New attempts get a unique id
-  (`crypto.randomUUID()`, or `` `${speech_id}:${created_at}` `` if a stable
-  scheme is preferred). `saveAttempt` STOPS forcing `id = speech_id`; it
-  writes the caller-supplied unique id. Two attempts for the same speech now
-  coexist instead of overwriting.
-- **Add indexes on the `attempts` store**, created in `onupgradeneeded`
-  when upgrading to v2 (indexes build over existing rows automatically):
-  - `by_speech_created` — compound key `["speech_id", "created_at"]`. This
-    is the workhorse: per-speech, newest-first pagination via a cursor, and
-    "latest attempt" as the first row of a `"prev"` cursor. Both are index
-    range scans, never full-store scans.
-  - (Optional) `by_speech` on `"speech_id"` for `count()`; the compound
-    index can also serve counts over a bound range, so a second index is
-    only for convenience. Pick one; do not add unused indexes.
-- **Existing rows survive.** A pre-migration record has `id == speech_id`
-  and a real `speech_id`/`created_at`, so the new index includes it and it
-  becomes that speech's first archived attempt. No data rewrite. A new
-  attempt for the same speech gets a different id and is appended.
-- **Add a `schedules` object store** keyed by `speech_id`, created in the
-  same v2 upgrade. One active schedule per speech; scheduling again
-  overwrites it. No index needed (primary-key lookup only).
+### 3.2 Forward-only migration (`DB_VERSION` 2 → 3)
 
-Guard the whole file's IndexedDB access exactly as today
-(`typeof indexedDB === "undefined"` rejects), so jsdom without a shim still
-degrades instead of throwing.
+Bump `DB_VERSION` to `3`. In the SAME `onupgradeneeded`, create two new
+stores; never touch or rewrite `attempts` or `schedules`.
+
+- **`ledger` store**, keyPath `id`.
+  - Compound index `by_speech_saved` on `["speech_id", "saved_at"]`. This
+    is the workhorse: the ledger screen scans it clustered by source (so
+    grouping is a contiguous cursor pass), and the per-source saved-state
+    lookup for the alignment surface is a bounded range scan on one
+    `speech_id`. No full-store scan, no `getAll()` on a hot path.
+- **`user_texts` store**, keyPath `id`. Primary-key lookup only; no index
+  needed (a pasted source is opened by its exact id).
+
+Guard IndexedDB access exactly as today. Existing `attempts` and
+`schedules` rows survive untouched; the new stores start empty.
 
 ### 3.3 Type changes (`src/types.ts`)
-- `Attempt` gains `mode: "warmup" | "cold"`. Forward-additive. When reading
-  a pre-migration record that lacks `mode`, treat it as `"warmup"` (that is
-  what EPIC 2 recorded). Never crash on a missing field.
-- Add `ScheduleEntry`:
-  ```ts
-  export interface ScheduleEntry {
-    speech_id: string;
-    condensed_at: number;  // when the user scheduled (proxy for "has read the moves")
-    reveal_at: number;     // epoch ms when the cold attempt opens
-    status: "waiting" | "ready" | "done";
+
+Add, forward-additive:
+
+```ts
+export interface LedgerItem {
+  id: string;          // crypto.randomUUID()
+  phrase: string;      // the original (master's) line kept, verbatim
+  speech_id: string;   // source id: a curated speech id, or a "paste:<uuid>" id
+  source_title: string; // denormalized at save time for grouping and export
+  note?: string;       // reserved; no editor ships in this EPIC
+  saved_at: number;    // epoch ms
+}
+
+export interface UserText {
+  id: string;          // "paste:<uuid>"
+  title: string;       // deterministic, derived from the opening words
+  text: string;        // the pasted text, stored as a plain string
+  sentences: string[]; // segmentSentences(text)
+  hints: string[];     // one deterministic cue per sentence, same length/order
+  created_at: number;  // epoch ms
+}
+```
+
+`source_title` is denormalized so the ledger groups and the export read
+without loading every source. No rename feature exists, so it cannot go
+stale. `speech_id` is the stable grouping key; display uses `source_title`.
+
+### 3.4 New `db.ts` API (all index- or key-based)
+
+Ledger:
+- `saveLedgerItem(item: LedgerItem): Promise<void>` — `put` by `id`.
+- `removeLedgerItem(id: string): Promise<void>` — `delete` by `id`.
+- `listLedgerBySpeech(speechId: string): Promise<LedgerItem[]>` — bounded
+  range scan on `by_speech_saved` for one `speech_id`, used to hydrate the
+  keep-state of the current source's alignment surface. Bounded by how many
+  lines the user kept for one source (small).
+- `listLedger(opts?: { limit?: number; after?: [string, number] | null }): Promise<{ items: LedgerItem[]; nextCursor: [string, number] | null }>`
+  — a capped page (default 30) from a cursor over `by_speech_saved`, so
+  items arrive clustered by `speech_id`. `nextCursor` is the compound key
+  to continue from. This is the paginated, index-backed ledger read.
+- `countLedger(): Promise<number>` — index `count()` over the whole store,
+  used to decide the export empty state and any "Ledger (N)" affordance.
+  (Optional; the first `listLedger` page also reveals emptiness.)
+
+User texts:
+- `saveUserText(t: UserText): Promise<void>` — `put` by `id`.
+- `getUserText(id: string): Promise<UserText | null>` — primary-key `get`.
+
+Export (deliberate, not a hot path — reading all rows here is acceptable):
+- `readAllForExport(): Promise<{ attempts: Attempt[]; ledger: LedgerItem[]; userTexts: UserText[] }>`
+  — one cursor pass per store. Strip each attempt's `audio_blob` before
+  returning (audio never leaves the device in the export).
+
+Keep every list read paginated or bounded and every point read key-based.
+A review WILL check that the ledger screen does not `getAll()` the whole
+store and filter in JS.
+
+### 3.5 Deterministic hint extraction (`src/lib/hints.ts`, pure)
+
+No LLM. All functions are pure and unit-testable.
+
+- Constants: `PASTE_MAX_CHARS = 10000`, `PASTE_MIN_CHARS = 40`.
+- `validatePaste(text: string): { ok: true } | { ok: false; reason: "too-long" | "too-short" }`
+  — trims, checks against the bounds. Reject rather than silently
+  truncate.
+- `extractDeck(text: string): { sentences: string[]; hints: string[] }`:
+  - Normalize newlines and runs of whitespace to single spaces (this is
+    source text, so do NOT run the spoken-transcript filler cleanup on it).
+  - `sentences = segmentSentences(normalized)` (reuse
+    `src/align/segment.ts` unchanged).
+  - For each sentence, derive ONE deterministic cue: take the leading
+    clause up to the first `,` `;` or `:`, or the first `HINT_WORDS` words
+    (define `HINT_WORDS = 8`), whichever is shorter; trim; strip trailing
+    terminal punctuation; append an ellipsis when the cue is shorter than
+    the sentence. The result is one line. `hints[i]` cues `sentences[i]`;
+    the arrays are the same length and order.
+  - This cue is a memory prompt drawn from the sentence itself, never a
+    paraphrase. Do not dress it up as an authored hint.
+- `deriveTitle(text: string): string` — the first ~6 words of the first
+  sentence, trimmed, trailing punctuation removed; fall back to a fixed
+  positive default (for example "Your text") when the paste has no usable
+  words. Deterministic.
+
+### 3.6 Export builders (`src/lib/export.ts`, pure builders + download helper)
+
+- `buildExportJson(data): string` — a stable, pretty-printed JSON string:
+  ```
+  {
+    "app": "Franklin's Podium",
+    "exported_at": <ms>,
+    "attempts": [
+      { "source_id", "source_title", "mode", "created_at",
+        "corrected_transcript", "alignment": [{ "spoken", "original", "relation" }] }
+    ],
+    "ledger": [
+      { "phrase", "source_id", "source_title", "saved_at" }
+    ],
+    "your_texts": [
+      { "id", "title", "text", "created_at" }
+    ]
   }
   ```
-  `waiting` vs `ready` is DERIVED at read time from `reveal_at` vs now (see
-  `src/lib/schedule.ts`); persist `status` so `done` (a cold attempt was
-  completed against this schedule) is durable. Do not rely on the persisted
-  `status` to decide waiting/ready; recompute those from the clock so a
-  reload after the reveal reflects reality.
+  `source_title` for a curated attempt is resolved from `getSpeech`; for a
+  user source it is the `UserText.title`. Audio is never included. Ordering
+  is deterministic (by source, then by time) so exports are stable and
+  diffable.
+- `buildExportMarkdown(data): string` — a human-readable document the user
+  keeps: a top heading, a "Your ledger" section grouped by source (each
+  group headed by its title, each kept line as a list item with its date),
+  and a "Your attempts" section grouped by source, each attempt showing its
+  date and mode and its aligned pairs rendered readably (your line beside
+  the original line). Static headings and labels are product voice: sweep
+  them. `exported_at` is passed in from the caller (the component supplies
+  `Date.now()`), so the builder stays pure and testable with a fixed value.
+- A small download helper offers a string as a `Blob` of the right type
+  (`application/json` / `text/markdown`) via a temporary object URL, then
+  revokes it. Reuse the same shape as the EPIC 3 `.ics` download helper;
+  it touches no network.
 
-### 3.4 New/changed `db.ts` API (all index-backed)
-- `saveAttempt(attempt: Attempt): Promise<void>` — writes with the unique
-  `attempt.id` (no more `id = speech_id`).
-- `getLatestAttempt(speechId): Promise<Attempt | null>` — reimplemented as
-  the first row of a `"prev"` cursor on `by_speech_created` bounded to
-  `speechId`. Still the API `restoreLatest` uses.
-- `listAttempts(speechId, opts?): Promise<{ items: Attempt[]; nextCursor: T | null }>`
-  — newest-first page via the compound-index cursor, page size capped
-  (default 10). `opts` carries the cursor/offset for the next page. MUST be
-  a bounded index range scan, not `getAll()`.
-- `countAttempts(speechId): Promise<number>` — index `count()` over the
-  speech's range. Used for the "Past attempts (N)" affordance.
-- `getAttempt(id): Promise<Attempt | null>` — primary-key `get` for opening
-  one attempt in the archive/compare.
-- `saveSchedule(entry: ScheduleEntry): Promise<void>`,
-  `getSchedule(speechId): Promise<ScheduleEntry | null>`,
-  `markScheduleDone(speechId): Promise<void>` (or fold into `saveSchedule`).
-
-Keep all reads index- or key-based. A code review WILL check that no hot
-path calls `getAll()` on the whole store or filters in JS.
-
-### 3.5 Schedule + countdown logic (`src/lib/schedule.ts`, pure)
-Pure, unit-testable functions so the gating logic is proven without a DOM:
-- `scheduleState(entry: ScheduleEntry | null, now: number): "none" | "waiting" | "ready" | "done"`.
-  `done` when `entry.status === "done"`; else `ready` when
-  `now >= reveal_at`; else `waiting`; `none` when `entry` is null.
-- `revealAtFromDays(now: number, days: number): number` — `now + days*86400000`.
-- `formatCountdown(msRemaining: number): string` — a short human string in
-  product voice, for example `"2 days, 4 hours"` or `"under an hour"`. No
-  em-dashes; swept copy.
-- Validate the gap: `days` is an integer `>= MIN_GAP_DAYS` (MIN = 2, so it
-  is genuinely a multi-day forgetting gap) and `<= MAX_GAP_DAYS` (for
-  example 30). Reject out-of-range input rather than storing it.
-
-### 3.6 Calendar file (`src/lib/ics.ts`, pure)
-- `buildIcs({ title, revealAt, now }): string` returns a valid RFC 5545
-  `VCALENDAR` with one `VEVENT`:
-  - `DTSTART` at `revealAt`, `DTEND` at `revealAt + 15min` (a short rep).
-  - `SUMMARY` in product voice, for example
-    `Cold attempt: rebuild The Gettysburg Address from memory`.
-  - `DESCRIPTION` one plain line, for example
-    `Open Franklin's Podium and speak this speech from memory before you look at it.`
-  - `UID` unique and stable per schedule (for example
-    `` `${speechId}-${revealAt}@franklins-podium` ``), `DTSTAMP` at `now`.
-  - CRLF line endings, timestamps in UTC `Z` form, text values escaped
-    (`,`, `;`, `\`, newlines) and long lines folded per the spec.
-- A small download helper offers the string as a
-  `text/calendar` `Blob` via a temporary object URL. It touches no network.
-- The `SUMMARY`/`DESCRIPTION` strings ARE product voice: sweep them.
+Filenames: `franklins-podium.json` and `franklins-podium.md`.
 
 ---
 
 ## 4. Technical design — navigation and screens
 
 ### 4.1 Navigation (extend `src/lib/nav.ts`, do not add a router)
-- Add an `archive` view. Hash routes become:
-  - `#/` → library
-  - `#/speech/:id` → read
-  - `#/speech/:id/warmup` → reconstruct (warm-up)
-  - `#/speech/:id/archive` → archive (NEW)
-- Keep `parseHash`/`buildHash` pure and update `nav.test.ts` for the new
-  route. `View` gains `"archive"`.
-- The cold attempt reuses the existing `reconstruct` view. Its `mode`
-  (`warmup` vs `cold`) is held in `App` state, matching how `phase` is
-  already in-memory; the hash need not distinguish them (deep-linking mid
-  cold-attempt is not a requirement). Set `mode` when the attempt starts,
-  read it when saving. Do NOT invent a `cold` hash segment unless it earns
-  its keep; if you do, keep it backward compatible with `warmup`.
-- `App` loads the schedule alongside the latest attempt when a read screen
-  opens (extend the existing async-on-open path). Reserve the schedule
-  panel's layout while it loads so there is no jump.
 
-### 4.2 Read screen: the schedule panel (`src/components/SchedulePanel.tsx`)
-A new component rendered inside/under the read screen, given the loaded
-`ScheduleEntry | null` and the speech. It never competes with the warm-up
-for the single primary action (see §2 §7).
+Add three top-level views. Hash routes:
+- `#/ledger` → the ledger (NEW)
+- `#/paste` → paste-your-own entry (NEW)
+- `#/settings` → settings and export (NEW)
+- Existing `#/`, `#/speech/:id`, `#/speech/:id/warmup`,
+  `#/speech/:id/archive` are unchanged, and `:id` now also accepts a
+  `paste:<uuid>` source id (already handled: it is `encodeURIComponent`'d
+  in `buildHash` and decoded in `parseHash`).
 
-- **State `none`:** a subordinate panel headed like "Schedule a cold
-  attempt", a short line on why (you speak it cold after a few days, when
-  you have forgotten the words), the gap presets (2 days, 3 days, 1 week)
-  as labelled controls, and, once a gap is chosen, an "Add to calendar"
-  action that downloads the `.ics`. Choosing a gap writes the
-  `ScheduleEntry` and moves to `waiting`. Warm-up remains the primary.
-- **State `waiting`:** show the countdown (`aria-live="polite"`), keep the
-  "Add to calendar" download available, and render the cold-attempt control
-  as clearly closed (disabled with an accessible name like "Cold attempt
-  opens in 2 days"). The warm-up stays the primary and fully usable. Offer
-  a quiet way to change or clear the schedule.
-- **State `ready`:** the cold attempt is the primary action now ("Start
-  cold attempt"); starting it enters `reconstruct` with `mode = "cold"`.
-  The warm-up drops to a secondary control. Completing the cold attempt
-  marks the schedule `done`.
-- **State `done`:** the schedule is spent; offer to schedule another cold
-  attempt (back to `none`) while the archive holds the completed one.
-- The countdown recomputes on a light interval (about once a minute is
-  enough; a per-second tick is unnecessary and wasteful) and on
-  `visibilitychange`/focus so it is correct when the tab returns. Clear the
-  interval on unmount.
+`View` gains `"ledger" | "paste" | "settings"`. Keep `parseHash`/`buildHash`
+pure; extend `nav.test.ts` to round-trip the new routes and confirm a
+`paste:<uuid>` speech id survives encode/decode.
 
-### 4.3 Reconstruct/study: save every attempt (update `App.tsx`)
-- `handleStudy` writes a NEW attempt each time (unique id, `mode` from the
-  current run) instead of overwriting. `markFirstRunDone` stays as is.
-- After a save, if a previous attempt for this speech exists, surface a
-  clearly labelled "Compare with your last attempt" control from the study
-  view (this is the redo-shows-previous-beside-new path, see §4.5).
-- Add a subordinate "Past attempts (N)" link from the read screen and/or
-  the study view into the archive, where N is `countAttempts`. Hide or read
-  "Past attempts" when N is 0.
-- `restoreLatest` keeps working via the reimplemented `getLatestAttempt`.
-- The `AlignmentSurface` differentiator contract is untouched: no `%`, no
-  pass/fail, no per-word error styling, ever, including in compare.
+Add a small, keyboard-reachable top nav (in the masthead) with links to the
+library, the ledger, and settings, plus an entry to paste-your-own from the
+library screen. Keep it to short text links, ~44px targets, one clear set.
+Do not build a heavy nav component.
 
-### 4.4 Archive screen (`src/components/Archive.tsx`, view `archive`)
-- Reached via `#/speech/:id/archive`. Header names the speech and states,
-  in one positive line, what it holds ("Every reconstruction you record,
-  saved on this device.").
-- Renders the first page (cap 10) of `listAttempts` newest-first, with a
-  load-more control that fetches the next page via the returned cursor.
-  Each row: formatted timestamp, a mode label ("Warm-up" / "Cold"), and a
-  short first-line snippet of the corrected transcript. The row is one
-  keyboard-reachable control that opens that attempt's stored alignment in
-  the study surface.
-- Two attempts can be selected for compare (for example a "Compare" toggle
-  on rows, capped at two). With two chosen, a "Compare selected" action
-  opens the compare view.
-- Empty state (no attempts for this speech): the designed positive copy
-  above with a control to start a warm-up. Loading state: skeleton rows
-  that hold layout.
-- A back control returns to the read screen and/or library.
+### 4.2 Save-to-ledger on the alignment surface (`src/components/AlignmentSurface.tsx`)
 
-### 4.5 Compare view (`src/components/CompareAttempts.tsx`)
-- Given two `Attempt`s (or one "current" plus the previous), render each on
-  its own `AlignmentSurface`, each under a clear header naming which attempt
-  it is by date and mode ("This attempt" / "Your last attempt, Sep 20").
-- **Layout:** stacked single column at 390px (no horizontal scroll); two
-  columns as a wide-viewport enhancement only. Reuse `AlignmentSurface`
-  unchanged; pass each attempt's stored `alignment` and `originalLabel`
-  (the speaker). Audio replay per attempt is optional; if shown, each
-  surface plays its own stored audio.
-- **No ranking, no diff-of-diffs, no aggregate.** The two surfaces sit
-  together and the user reads them. Any UI that declares one attempt better
-  is a differentiator failure.
-- One-attempt state: a positive line explaining a second attempt is needed
-  to compare, plus a control to record one. Never a broken compare.
+Extend the presentational surface with optional keep support, so it stays
+presentational and all writes stay in `App`:
+
+- New optional props: `keptPhrases?: Set<string>` (the originals already in
+  the ledger for this source) and
+  `onToggleKeep?: (phrase: string) => void`.
+- When `onToggleKeep` is provided, render a keep toggle on each pair that
+  HAS an `original` (that is, `relation` is `aligned` or `original-only`;
+  a `spoken-only` pair has no original to keep, so no control). Pairs with
+  no original show no keep control.
+- The toggle is a real button, `aria-pressed` reflecting
+  `keptPhrases.has(pair.original)`, with a state-bearing accessible name.
+  Clicking calls `onToggleKeep(pair.original)`.
+- When `onToggleKeep` is absent (for example a context that should not
+  write), no keep control renders. The surface's existing output is
+  otherwise unchanged.
+- The differentiator contract is untouched: no `%`, no pass/fail, no
+  per-word error styling, no "missed" count. The keep control is additive
+  and positive only.
+
+`App` owns the wiring:
+- When a source's study view, an opened archived attempt, or a compare pane
+  renders, `App` has already loaded `listLedgerBySpeech(sourceId)` into a
+  `Set<string>` of kept originals for that source and passes it down.
+- `onToggleKeep(phrase)` optimistically flips the local set (100ms
+  feedback), then writes: if now kept, `saveLedgerItem({ id: uuid, phrase,
+  speech_id: sourceId, source_title, saved_at: Date.now() })`; if now
+  removed, `removeLedgerItem` for the matching item (look it up by
+  `speech_id` + `phrase` from the loaded per-source list). Persistence is
+  best-effort as elsewhere; the UI reflects the toggle immediately.
+- Compare renders two panes; each pane's `keptPhrases`/`onToggleKeep` key
+  on the SAME source id (both attempts share one source), so keeping a line
+  in one pane reflects in the other after the set updates.
+
+### 4.3 Ledger screen (`src/components/Ledger.tsx`, view `ledger`)
+
+- Reached via `#/ledger` from the top nav. Heading names the screen; a
+  short positive line states what it holds.
+- Loads the first page via `listLedger` (cap 30) and renders items grouped
+  by source. Because the compound index clusters by `speech_id`, items
+  arrive contiguous per source; render a `<section>` per source with an
+  `<h2>` of `source_title`, and the kept lines under it (each with its
+  saved date and a quiet remove control). A load-more control fetches the
+  next page via `nextCursor`; when a group spans a page boundary, continue
+  it under the same heading (compare the last rendered `speech_id` to the
+  first of the next page and merge). State the load-more behaviour plainly;
+  do not silently cap.
+- Remove: a per-row control calls `removeLedgerItem(id)` and drops the row
+  optimistically. Removing the last item in a group removes its heading.
+- Empty state (no ledger items at all): a designed, positive message that
+  tells the user what the screen is for and the exact first step (open any
+  alignment and keep a line). It is not a blank region.
+- Loading state: skeleton rows that hold layout while the first page reads.
+- Fully usable at 390px, no horizontal scroll, ~44px targets on rows,
+  remove, and load-more.
+
+### 4.4 Paste-your-own (`src/components/PasteScreen.tsx`, view `paste`) and source resolution
+
+**Paste entry screen:**
+- Reached via `#/paste` from a clear entry on the library screen.
+- ONE labelled `<textarea>` with a real example placeholder (show, don't
+  tell) and ONE primary action ("Find the moves" or similar, swept). Back
+  is secondary.
+- On submit, `validatePaste(text)`. On `too-long` or `too-short`, show a
+  designed error in product voice with what to do next (trim to the cap, or
+  add a few more sentences). Do not truncate silently.
+- On valid input: build the source with `extractDeck` and `deriveTitle`,
+  store it via `saveUserText({ id: "paste:" + crypto.randomUUID(), title,
+  text, sentences, hints, created_at: Date.now() })`, then navigate to the
+  read screen `#/speech/<encoded paste id>`. A brief working state covers
+  the store + navigate step.
+
+**Source resolution (extend `App.tsx`):**
+- Introduce a resolved-source concept so the read/reconstruct/study/archive
+  path works for both curated and user sources without branching the loop.
+  A curated source resolves synchronously from `getSpeech(id)`; a
+  `paste:`-prefixed id resolves asynchronously from `getUserText(id)` into
+  a state field, with a loading state while it loads and the existing
+  not-found path only after the DB lookup fails.
+- The resolved source exposes the shape the loop already uses: `title`,
+  `sentences`, `hint_deck` (a curated speech's `hint_deck`, or a user
+  text's `hints`), and an `originalLabel` (the curated `author`, or a fixed
+  positive label such as "Your text" for a user source). `align(spoken,
+  source.sentences)` and the archive (`speech_id = source.id`) are
+  otherwise identical.
+- The read screen for a user source shows its moves (the derived hints) and
+  full text (the pasted text, rendered as text nodes) and offers the warm-up
+  as the primary action and the archive entry, exactly like a curated
+  speech. Scheduling a cold attempt is NOT required for user sources; the
+  EPIC 3 schedule panel keys on source id and MAY be reused as-is if it
+  needs no user-source special casing, but it must not gate or complicate
+  the warm-up loop. If reusing it adds branching, omit it for user sources.
+- Attempts and kept lines from a user source tag to `source.id`
+  (`paste:<uuid>`) and `source.title`, so the archive and the ledger group
+  them under the pasted text's title with no special cases.
+
+### 4.5 Settings and export (`src/components/Settings.tsx`, view `settings`)
+
+- Reached via `#/settings` from the top nav.
+- A short heading and the plain privacy statement that nothing here leaves
+  the device (positive voice, no em-dash).
+- Two primary export actions: "Download JSON" and "Download Markdown".
+  Each reads all data via `readAllForExport()`, builds the file with the
+  `src/lib/export.ts` builder (supplying `Date.now()` as `exported_at`),
+  and triggers the download. Give the button a pressed/working state so the
+  press is acknowledged within 100ms.
+- If there is nothing to export (no attempts and no ledger), the controls
+  say so positively and point at recording a first reconstruction, rather
+  than downloading an empty file.
+- Fully usable at 390px.
 
 ### 4.6 SEED_DEMO / demo path (preserve prior behaviour)
-- With `SEED_DEMO` (or `?demo=1`), the app still lands directly on the
-  featured speech's populated sample alignment surface within a minute, no
-  input, no schedule, no walk. The archive/schedule features do not alter
-  the demo entry. Do not seed fake attempts or a fake schedule for the demo.
+
+The demo path (`SEED_DEMO` or `?demo=1`) still lands directly on the
+featured speech's populated sample alignment surface within a minute, no
+input, no walk. The ledger, paste, and export features do not change the
+demo entry. Do not seed a fake ledger, a fake pasted source, or fake
+attempts for the demo. The sample surface may show the keep control (it is
+harmless and reversible), but the demo must not require it.
 
 ---
 
 ## 5. Ordered task list (each with acceptance criteria)
 
-**T1 — Archive + schedule persistence (the migration).**
-Bump `DB_VERSION` to 2. Stop keying attempts by `speech_id`; write unique
-ids. Add the `by_speech_created` compound index and the `schedules` store
-in `onupgradeneeded`. Add `listAttempts` (paginated cursor), `countAttempts`
-(index count), `getAttempt`, and schedule read/write, all index- or
-key-based. Add `mode` to `Attempt` and `ScheduleEntry` to `src/types.ts`.
-*Done when:* unit tests (see §6, using `fake-indexeddb`) prove that two
-attempts for one speech coexist without overwriting; a pre-v1 record
-survives the upgrade and appears as that speech's oldest attempt;
-`getLatestAttempt` returns the newest; `listAttempts` returns newest-first,
-respects the page cap, and pages through with the cursor; `countAttempts`
-matches; `getAttempt` fetches by id; schedules round-trip by `speech_id`;
-and no archive read calls `getAll()` on the whole store (assert via the API
-shape and a test that a large unrelated-speech population does not appear in
-or slow a small speech's query).
+**T1 — Data model and migration (`types.ts`, `db.ts`).**
+Add `LedgerItem` and `UserText` to `src/types.ts`. Bump `DB_VERSION` to 3.
+Create the `ledger` store (with the `by_speech_saved` compound index) and
+the `user_texts` store in `onupgradeneeded`, leaving `attempts` and
+`schedules` untouched. Add `saveLedgerItem`, `removeLedgerItem`,
+`listLedgerBySpeech`, `listLedger` (paginated cursor), `countLedger`,
+`saveUserText`, `getUserText`, and `readAllForExport` (audio stripped).
+*Done when:* unit tests (with `fake-indexeddb`) prove: a v2 database opens
+at v3 with existing `attempts`/`schedules` rows intact and the two new
+stores present; ledger items round-trip; `listLedgerBySpeech` returns only
+one source's items; `listLedger` returns a capped page clustered by source
+and pages through with the cursor; `removeLedgerItem` deletes by id;
+`countLedger` matches; a large ledger for OTHER sources does not appear in
+or enlarge one source's `listLedgerBySpeech` (index isolation);
+`saveUserText`/`getUserText` round-trip by id; `readAllForExport` returns
+attempts with no `audio_blob`.
 
-**T2 — Schedule + `.ics` pure logic.**
-Add `src/lib/schedule.ts` (`scheduleState`, `revealAtFromDays`,
-`formatCountdown`, gap validation with MIN/MAX days) and `src/lib/ics.ts`
-(`buildIcs`, download helper).
-*Done when:* unit tests cover `scheduleState` across none/waiting/ready/done
-with a fixed `now`; gap validation rejects sub-minimum and over-maximum
-values; `formatCountdown` renders swept, em-dash-free strings; `buildIcs`
-emits a valid `VCALENDAR`/`VEVENT` with `DTSTART` at the reveal, a unique
-`UID`, CRLF endings, escaped text, and a copy-swept `SUMMARY`/`DESCRIPTION`
-(no em-dash, no banned vocabulary, no "unlock").
+**T2 — Deterministic hint extraction (`src/lib/hints.ts`).**
+Add `validatePaste`, `extractDeck`, `deriveTitle`, and the size constants.
+*Done when:* unit tests prove `validatePaste` rejects over-`PASTE_MAX_CHARS`
+and under-`PASTE_MIN_CHARS` input and accepts a normal paste; `extractDeck`
+returns `sentences` and `hints` of equal length with one cue per sentence,
+each cue one line and derived only from that sentence (no external text, no
+model), and reuses `segmentSentences`; `deriveTitle` is deterministic and
+falls back to the positive default on empty input; the derived cue is
+demonstrably not a paraphrase (it is a prefix/leading-clause of its
+sentence).
 
-**T3 — Schedule panel on the read screen.**
-`SchedulePanel` renders the none/waiting/ready/done states, writes the
-schedule on gap choice, offers the `.ics` download, shows the live
-countdown (`aria-live`), and gates the cold attempt while keeping the
-warm-up available. Read screen keeps ONE primary action at a time.
-*Done when:* a component test shows: with no schedule, the presets and a
-warm-up primary render and choosing a preset stores a schedule; in
-`waiting`, the countdown and a closed cold-attempt control render while the
-warm-up stays enabled and "Add to calendar" is present; in `ready`, the
-cold attempt is the primary and starting it reports `mode = "cold"`; the
-panel copy is positive and free of "unlock"/em-dashes.
+**T3 — Export builders (`src/lib/export.ts`).**
+Add `buildExportJson`, `buildExportMarkdown`, and the download helper.
+*Done when:* unit tests prove `buildExportJson` emits valid JSON containing
+attempts (text fields and alignment, NO audio), ledger items, and user
+texts, with deterministic ordering and a passed-in `exported_at`;
+`buildExportMarkdown` emits a document with the ledger grouped by source and
+attempts grouped by source with aligned pairs; both builders' static
+headings/labels are copy-swept (no em-dash, no banned vocabulary, no
+"unlock").
 
-**T4 — Save every attempt with mode + restore.**
-`handleStudy` saves a new attempt (unique id, correct `mode`) each time
-rather than overwriting; `restoreLatest` still restores the newest; the
-cold attempt marks its schedule `done` on completion.
-*Done when:* an E2E test does two warm-ups for one speech and both persist
-(the archive shows two rows); the restore-on-reload behaviour still holds
-(newest restored); after a scheduled reveal, completing the cold attempt
-records a `cold` attempt and marks the schedule done (surfaced as the
-`done` panel state).
+**T4 — Save-to-ledger on the alignment surface (`AlignmentSurface.tsx`, `App.tsx`).**
+Add the optional `keptPhrases`/`onToggleKeep` props and the keep toggle on
+original-bearing pairs; wire `App` to load per-source kept phrases and to
+save/remove on toggle across the study view, opened archived attempts, and
+compare panes.
+*Done when:* a component test shows the keep toggle renders only on pairs
+with an original, reflects kept state via `aria-pressed`, and calls
+`onToggleKeep` with the exact original line; a test asserts the surface
+still shows no `%`, no pass/fail, no per-word error class with keep enabled;
+an integration/E2E path keeps a line from a study surface and it persists.
 
-**T5 — Archive screen + navigation.**
-Add the `archive` view and `#/speech/:id/archive` route (update
-`nav.ts`/`nav.test.ts`). `Archive` lists a capped, newest-first page with
-load-more, a designed empty state, a loading skeleton, and rows that open a
-stored attempt. Add "Past attempts (N)" entry points.
-*Done when:* an E2E test reaches the archive from the read/study screen,
-sees the saved attempts newest first, loads a second page when there are
-more than the page cap, opens one attempt onto its stored alignment
-surface, and (for a speech with no attempts) sees the designed positive
-empty state with a working warm-up control; `parseHash`/`buildHash` unit
-tests cover the archive route.
+**T5 — Ledger screen and navigation (`Ledger.tsx`, `nav.ts`, top nav).**
+Add the `ledger` view and `#/ledger` route (update `nav.ts`/`nav.test.ts`).
+`Ledger` renders the grouped, paginated list, the remove control, the
+designed positive empty state, and the loading skeleton. Add the top nav
+links.
+*Done when:* a component test renders groups headed by source with kept
+lines and dates, removes a row, and shows the positive empty state when
+there are no items; `parseHash`/`buildHash` unit tests cover `#/ledger`; an
+E2E test keeps a line, opens the ledger, and sees it grouped under its
+source.
 
-**T6 — Compare two attempts.**
-`CompareAttempts` renders two attempts on stacked `AlignmentSurface`s
-(single column at 390px). Redoing a speech offers "Compare with your last
-attempt"; the archive lets the user pick any two and compare.
-*Done when:* a component test renders two attempts side by side with
-per-attempt headers (date + mode) and asserts the differentiator guard
-holds in compare (no `%`, no pass/fail, no per-word error class, correct
-speaker label on each original column); an E2E test redoes a speech and
-opens the previous attempt beside the new one; the one-attempt state shows
-the designed "record another to compare" copy, never a broken view.
+**T6 — Paste-your-own and source resolution (`PasteScreen.tsx`, `App.tsx`, `Library.tsx`, `nav.ts`).**
+Add the `paste` view and `#/paste` route and a library entry point. The
+paste screen validates, extracts the deck, stores the `UserText`, and
+navigates into the read screen. `App` resolves curated and `paste:` sources
+uniformly so the read → warm-up → align → study → archive loop runs on
+pasted text with the `originalLabel` set to the user's own text.
+*Done when:* a component test shows an over-cap paste is rejected with a
+designed error and a valid paste stores a source and navigates; a test
+confirms pasted markup renders as literal text (no HTML injection);
+`parseHash`/`buildHash` cover `#/paste` and a `paste:<uuid>` speech id; an
+E2E test pastes text, extracts the moves, does a warm-up, and reaches the
+alignment surface labelled with the user's own text, with the attempt saved
+to that source's archive.
 
-**T7 — Designed states, mobile pass, README, copy sweep, existing tests.**
+**T7 — Settings and export screen (`Settings.tsx`, `nav.ts`, top nav).**
+Add the `settings` view and `#/settings` route and the nav link. The screen
+carries the privacy statement and the two export actions, with the
+nothing-to-export state.
+*Done when:* a component test triggers each export action and asserts a
+download of the right filename and content type is offered from an
+in-memory blob (no network); `parseHash`/`buildHash` cover `#/settings`; an
+E2E test clicks an export action and asserts the download fires locally.
+
+**T8 — Designed states, mobile pass, README, copy sweep, existing tests.**
 All new surfaces usable at 390px with no horizontal scroll and ~44px
-targets; the schedule/archive/compare designed states are positive and in
-voice; README updated for the spaced loop and archive with accurate
-commands; mechanical copy sweep over every added/changed user-visible
-string including the `.ics` text; existing unit/component/E2E suites pass
-(update any that assumed a single overwritable attempt).
+targets; ledger/paste/settings designed states positive and in voice;
+README updated for the ledger, paste, and export with accurate commands;
+mechanical copy sweep over every added/changed user-visible string
+(including the export files' static labels); existing unit/component/E2E
+suites pass (update any touched by the new nav or the surface prop change).
 *Done when:* an E2E test at 390px asserts no horizontal scroll on the
-schedule panel, archive, and compare views; the sweep finds no
-em-dashes/en-dashes, no banned vocabulary, no "unlock", and no negative
-empty-state phrasing in product-voice strings (verbatim speech text still
-exempt); `npm test` and `./scripts/e2e.sh` both pass, including the updated
-`restore.spec.ts` and any EPIC 1/2 spec touched by the multi-attempt change.
+ledger, paste, and settings screens and on the alignment surface with the
+keep control; the sweep finds no em-dashes/en-dashes, no banned vocabulary,
+no "unlock", and no negative empty-state phrasing in product-voice strings
+(verbatim speech text and the user's own paste stay exempt); `npm test` and
+`./scripts/e2e.sh` both pass.
 
 ---
 
 ## 6. Test plan (each acceptance criterion → automated proof)
 
-**Add `fake-indexeddb` as a devDependency** and import it in the db unit
-test (or in `src/test/setup.ts` scoped to db tests) so IndexedDB logic runs
-under Vitest/jsdom. This is the only way to prove indexing and pagination
-deterministically without the browser. It is a dev dependency only; it adds
-no runtime origin or bundle weight.
+`fake-indexeddb` is already a dev dependency (from EPIC 3). Reuse it for the
+new DB unit tests. It is dev-only; it adds no runtime origin or bundle
+weight.
 
 **Unit (Vitest):**
-- DB archive (→ T1, AC3, AC5): two attempts per speech coexist; a seeded
-  pre-v1 `{id: speechId}` record survives a v2 open and lists as oldest;
-  `getLatestAttempt` newest; `listAttempts` newest-first, page-capped, and
-  cursor-paged; `countAttempts` correct; `getAttempt` by id; populating many
-  attempts for OTHER speeches does not appear in or enlarge one speech's
-  page (index isolation, the fast-at-scale proof).
-- DB schedule (→ T1, AC1): `saveSchedule`/`getSchedule` round-trip by
-  `speech_id`; `markScheduleDone` flips status.
-- Schedule logic (→ T2, AC1): `scheduleState` across none/waiting/ready/done
-  at a fixed `now`; gap validation bounds; `formatCountdown` swept output.
-- ICS (→ T2, AC2): `buildIcs` valid structure, reveal `DTSTART`, unique
-  `UID`, CRLF, escaping; `SUMMARY`/`DESCRIPTION` copy-swept.
-- Nav (→ T5): `parseHash`/`buildHash` cover the archive route and still
-  round-trip library/read/warmup.
+- DB ledger (→ T1, AC1, AC2): items round-trip; `listLedgerBySpeech`
+  isolates one source; `listLedger` is capped, clustered by source, and
+  cursor-paged; `removeLedgerItem` deletes; index isolation proves a large
+  ledger for other sources does not slow or leak into one source's read.
+- DB user texts + export (→ T1, T3, AC3, AC4): `saveUserText`/`getUserText`
+  round-trip; `readAllForExport` strips audio; a v2→v3 open keeps existing
+  attempts/schedules.
+- Hints (→ T2, AC3): `validatePaste` bounds; `extractDeck` one cue per
+  sentence, equal-length arrays, cue derived only from its sentence, no
+  model call; `deriveTitle` deterministic with a positive fallback.
+- Export builders (→ T3, AC4): `buildExportJson` valid JSON, no audio,
+  deterministic order; `buildExportMarkdown` grouped structure; static
+  labels copy-swept.
+- Nav (→ T5, T6, T7): `parseHash`/`buildHash` cover `#/ledger`, `#/paste`,
+  `#/settings`, and a `paste:<uuid>` speech id, and still round-trip the
+  existing routes.
 
 **Component (Vitest + Testing Library, jsdom):**
-- SchedulePanel (→ T3, AC1, AC2): renders each state; choosing a preset
-  stores a schedule and moves to waiting; waiting shows the countdown and an
-  available warm-up plus add-to-calendar; ready makes the cold attempt
-  primary; copy positive, no "unlock", no em-dash.
-- Archive (→ T5, AC5): renders a page of rows with timestamp/mode/snippet;
-  load-more requests the next page; empty state is positive; a row click
-  invokes the open handler with the right id.
-- Compare (→ T6, AC4): two attempts render on two alignment surfaces with
-  per-attempt headers; differentiator guard (no `%`, no pass/fail badge, no
-  per-word error class) holds; the one-attempt state renders its designed
-  copy.
-- Alignment differentiator guard (carried from prior EPICs) still passes.
+- AlignmentSurface keep (→ T4, AC1): toggle renders only on original-bearing
+  pairs, reflects `aria-pressed`, calls `onToggleKeep` with the original;
+  differentiator guard (no `%`, no pass/fail, no per-word error class)
+  holds with keep enabled.
+- Ledger (→ T5, AC2): groups headed by source with dated rows; remove drops
+  a row; the positive empty state renders when there are no items; no
+  negative empty-state phrasing.
+- PasteScreen (→ T6, AC3): over-cap and under-min rejected with designed
+  errors; a valid paste stores a source and navigates; pasted markup renders
+  as literal text.
+- Settings (→ T7, AC4): each export action triggers a local download of the
+  right filename/type; the nothing-to-export state renders when empty.
 
 **E2E (Playwright), transcription stubbed via `__E2E_TRANSCRIPT__`:**
-- Spaced loop (→ AC1, AC2): open a speech, schedule a cold attempt, see the
-  countdown, confirm the cold attempt is closed while the warm-up is still
-  available, and download the `.ics` (assert the download fires with a
-  `.ics` filename and `text/calendar` content). Use Playwright's clock
-  (`page.clock`) to advance past `reveal_at` and confirm the cold attempt
-  becomes available and, once completed, records a `cold` attempt. If
-  `page.clock` proves unreliable against the app's timers, the unit
-  `scheduleState` test is the primary gating proof and the E2E may instead
-  seed a past-reveal schedule through the app's own storage path.
-- Archive accumulation (→ AC3, AC5): complete two warm-ups for one speech,
-  open the archive, see both newest-first; with more than the page cap,
-  load-more reveals older ones; opening a row shows that attempt's stored
-  alignment.
-- Compare (→ AC4): redo a speech and open the previous attempt beside the
-  new one; assert both alignment surfaces render and neither shows a `%` or
-  pass/fail.
-- Mobile (→ QUALITY BAR §2): at 390px, no horizontal scroll on the schedule
-  panel, archive, and compare views.
-- Restore (→ regression): the existing restore-on-reload E2E still passes
-  against the multi-attempt store (newest restored).
+- Ledger (→ AC1, AC2): from a study surface, keep a line; open `#/ledger`;
+  see it grouped under its source with its date; remove it and see the
+  group empty. Assert no `%` or pass/fail on the surface with keep present.
+- Paste (→ AC3): open paste from the library, paste a short passage, extract
+  the moves, do a warm-up, and reach the alignment surface labelled with the
+  user's own text; confirm the attempt appears in that source's archive.
+  Confirm an over-cap paste shows the designed error.
+- Export (→ AC4): from settings, click each export and assert a download
+  fires with the right filename and `text/`... or `application/json` type,
+  from a local `blob:`/object URL (not a network request).
+- Mobile (→ QUALITY BAR §2): at 390px, no horizontal scroll on the ledger,
+  paste, and settings screens and on the alignment surface with the keep
+  control.
+- No-upload / headers (carried): same-origin GETs only,
+  `crossOriginIsolated === true`, headers intact; the export downloads are
+  local blobs, not network requests.
 - SEED_DEMO / demo (→ §4.6, carried): the demo still lands on the featured
-  populated sample surface within a minute, no schedule, no walk.
-- Header/isolation and no-upload E2E (carried): same-origin GETs only,
-  `crossOriginIsolated === true`, headers intact. The `.ics` download is a
-  local `blob:`/object URL, not a network request.
+  populated sample surface within a minute, with no ledger, paste, or export
+  requirement.
 
-**Existing tests to update (part of T7):**
-- `restore.spec.ts`: still valid (one attempt, newest restored); re-run
-  against the new store and confirm it passes; extend or leave as is.
-- Any spec or component test that assumed one overwritable attempt per
-  speech: update to the append model. Preserve what each originally proved.
+**Existing tests to update (part of T8):** any spec or component test
+touched by the new masthead nav or by the `AlignmentSurface` prop addition.
+Preserve what each originally proved.
 
-**Copy sweep (mechanical, part of T7 DONE):** grep every added/changed
-user-visible string (schedule panel, presets, countdown, add-to-calendar,
-`.ics` `SUMMARY`/`DESCRIPTION`, archive intro/empty/rows, compare headers
-and one-attempt copy) for `—`, `–`, the banned vocabulary, the word
-"unlock", and negative empty-state phrasing; fix every hit. Verbatim speech
-`full_text`/`sentences[]`, titles, and author names stay exempt.
+**Copy sweep (mechanical, part of T8 DONE):** grep every added/changed
+user-visible string (keep control labels and accessible names, ledger
+heading/intro/empty/rows/remove, paste heading/placeholder/action/errors,
+settings heading/privacy/export labels, the export files' static
+headings/labels, new nav links) for `—`, `–`, the banned vocabulary, the
+word "unlock", and negative empty-state phrasing; fix every hit. Verbatim
+speech text, author names, and the user's own pasted text stay exempt.
 
 ---
 
 ## 7. Notes, decisions, and exemptions
-- **The migration is the risk; keep it forward-only.** Never delete or
-  rewrite existing rows. Bumping to v2 and adding indexes over the existing
-  store turns the one saved attempt into the archive's first entry for free.
-  Do not attempt a data transform.
-- **Recompute waiting/ready from the clock, persist only `done`.** A user
-  who leaves the tab open across the reveal, or reloads after it, must see
-  the cold attempt open without any background job. Storing `status` as the
-  source of truth for waiting/ready would go stale.
-- **`page.clock` for the gate transition, `scheduleState` unit test as the
-  floor.** The pure gating function is the deterministic proof; the E2E
-  clock test is the integration proof and may be softened to a seeded
-  past-reveal if the timer interplay is flaky. Never ship the gate unproven.
-- **Reuse the alignment engine and surface untouched.** Compare renders two
-  existing alignments; it computes nothing new. Any real defect found while
-  wiring gets the minimum fix plus a note, not a redesign.
-- **Audio storage grows unbounded by design in this EPIC.** Every attempt
-  keeps its optional audio. Pagination keeps the VIEWS fast (the acceptance
-  criterion), but total on-device storage grows with use. Eviction/retention
-  is explicitly out of scope; if testing shows it is a near-term problem,
-  report it and raise a `requested_task`, do not build it here.
-- **Export stays in EPIC 4.** This EPIC persists and displays the archive;
-  writing it to a JSON/Markdown file is the next EPIC. The `.ics` is the
-  only file this EPIC produces, and it is a reminder, not a data export.
+
+- **The keep control must stay additive and neutral.** It touches the
+  differentiator surface, so it is held to it: keep marks a line worth
+  taking, never a line marked wrong. No count of missed lines, no score, no
+  red ink. This is the single most important constraint in the EPIC.
+- **Hints for pasted text are cues, not paraphrases.** The non-goal is
+  explicit: no LLM-generated hints. A deterministic leading-clause cue is
+  the honest equivalent of the curated deck's one-line-per-sentence hint.
+  Do not reach for a model, and do not present the cue as an authored
+  paraphrase.
+- **Pasted text is untrusted local input.** Size-cap it and treat it as a
+  plain string. Never render it as HTML and never log it.
+- **Uniform source id.** Curated sources keep their existing ids; user
+  sources use `paste:<uuid>`. The archive, schedule store, and ledger all
+  key on this id with no special cases, which is why the loop reuses cleanly.
+- **Export excludes audio by design.** Audio blobs stay on the device.
+  The export is the text record. Re-import/restore is out of scope; raise
+  it via `requested_tasks` if it is wanted next.
+- **Migration is forward-only.** Bumping to v3 adds two empty stores and
+  touches nothing existing. Do not transform or delete any row.
+- **The ledger is a list, not a dashboard.** No analytics, no counts of
+  performance, no ranking of sources. Grouping by source and a saved date
+  is the whole model.
 
 ## 8. Assumptions (flagged; none block the build)
+
 - The planner's scope block for this EPIC was present and authoritative;
   this spec expands it directly. No blocking questions.
-- Gap presets (2 days, 3 days, 1 week) and a 15-minute calendar event are
-  chosen for a short daily rep; the implementer may adjust the exact preset
-  set within the MIN/MAX-day bounds as long as every scheduled gap is
-  genuinely multi-day (MIN 2 days).
-- `fake-indexeddb` is assumed acceptable as a dev-only test dependency; it
-  adds no runtime code or origin. If the implementer prefers to prove the
-  archive purely through E2E in a real browser instead, that is acceptable
-  provided every §6 DB unit criterion is proven somewhere and the
-  index-not-scan guarantee is demonstrated.
+- `PASTE_MAX_CHARS = 10000`, `PASTE_MIN_CHARS = 40`, `HINT_WORDS = 8`, and a
+  ledger page cap of 30 are chosen as sane defaults; the implementer may
+  adjust within reason as long as the input stays genuinely size-capped,
+  the hint stays a one-line deterministic cue, and the ledger stays
+  paginated and index-backed.
+- The export is delivered as two files (one JSON, one Markdown), each
+  covering both the archive and the ledger. If the implementer finds a
+  clearer split (for example four files), that is acceptable provided every
+  §6 export criterion is proven and audio is never included.
+- Scheduling a cold attempt for a pasted source is neither required nor
+  forbidden; reuse the EPIC 3 panel only if it needs no user-source special
+  casing.

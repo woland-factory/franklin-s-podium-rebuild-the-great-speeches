@@ -11,8 +11,16 @@ import {
   getSchedule,
   markScheduleDone,
   clearSchedule,
+  saveLedgerItem,
+  removeLedgerItem,
+  listLedgerBySpeech,
+  listLedger,
+  countLedger,
+  saveUserText,
+  getUserText,
+  readAllForExport,
 } from "./db";
-import type { Attempt, ScheduleEntry } from "../types";
+import type { Attempt, LedgerItem, ScheduleEntry, UserText } from "../types";
 
 function makeAttempt(
   speechId: string,
@@ -153,6 +161,179 @@ describe("v1 to v2 migration", () => {
     expect(page.items[1].mode).toBe("warmup");
     // The migrated record kept its original primary key.
     expect(await getAttempt("gettysburg")).not.toBeNull();
+  });
+});
+
+function makeLedgerItem(
+  speechId: string,
+  savedAt: number,
+  overrides: Partial<LedgerItem> = {},
+): LedgerItem {
+  return {
+    id: `${speechId}:${savedAt}`,
+    phrase: `a line saved at ${savedAt}`,
+    speech_id: speechId,
+    source_title: speechId === "gettysburg" ? "The Gettysburg Address" : speechId,
+    saved_at: savedAt,
+    ...overrides,
+  };
+}
+
+describe("ledger", () => {
+  it("round-trips a kept line", async () => {
+    await saveLedgerItem(makeLedgerItem("gettysburg", 1000));
+    const items = await listLedgerBySpeech("gettysburg");
+    expect(items).toHaveLength(1);
+    expect(items[0].phrase).toBe("a line saved at 1000");
+  });
+
+  it("listLedgerBySpeech returns only one source's items", async () => {
+    await saveLedgerItem(makeLedgerItem("gettysburg", 1000));
+    await saveLedgerItem(makeLedgerItem("gettysburg", 2000));
+    await saveLedgerItem(makeLedgerItem("fight-no-more", 1500));
+    const g = await listLedgerBySpeech("gettysburg");
+    expect(g).toHaveLength(2);
+    expect(g.every((i) => i.speech_id === "gettysburg")).toBe(true);
+  });
+
+  it("does not let a large ledger for other sources leak into one source", async () => {
+    for (let i = 1; i <= 200; i++) {
+      await saveLedgerItem(makeLedgerItem("other", i));
+    }
+    await saveLedgerItem(makeLedgerItem("gettysburg", 5000));
+    const g = await listLedgerBySpeech("gettysburg");
+    expect(g).toHaveLength(1);
+    expect(g[0].speech_id).toBe("gettysburg");
+  });
+
+  it("listLedger returns a capped page clustered by source and pages with the cursor", async () => {
+    // Two sources, interleaved save times, so ordering by source is visible.
+    for (let i = 1; i <= 20; i++) {
+      await saveLedgerItem(makeLedgerItem("aaa", i * 10));
+      await saveLedgerItem(makeLedgerItem("bbb", i * 10 + 5));
+    }
+    const first = await listLedger({ limit: 25 });
+    expect(first.items).toHaveLength(25);
+    // Clustered by source: the first 20 are "aaa", ascending by saved_at.
+    expect(first.items.slice(0, 20).every((i) => i.speech_id === "aaa")).toBe(true);
+    expect(first.items[0].saved_at).toBe(10);
+    expect(first.items[20].speech_id).toBe("bbb");
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await listLedger({ limit: 25, after: first.nextCursor });
+    expect(second.items).toHaveLength(15);
+    expect(second.items.every((i) => i.speech_id === "bbb")).toBe(true);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it("removes a kept line by id and counts the whole store", async () => {
+    await saveLedgerItem(makeLedgerItem("gettysburg", 1000));
+    await saveLedgerItem(makeLedgerItem("gettysburg", 2000));
+    expect(await countLedger()).toBe(2);
+    await removeLedgerItem("gettysburg:1000");
+    expect(await countLedger()).toBe(1);
+    const items = await listLedgerBySpeech("gettysburg");
+    expect(items).toHaveLength(1);
+    expect(items[0].saved_at).toBe(2000);
+  });
+});
+
+describe("user texts", () => {
+  const t: UserText = {
+    id: "paste:abc",
+    title: "A pasted opening",
+    text: "A pasted opening. And a second sentence.",
+    sentences: ["A pasted opening.", "And a second sentence."],
+    hints: ["A pasted opening", "And a second sentence"],
+    created_at: 4242,
+  };
+
+  it("round-trips by id", async () => {
+    await saveUserText(t);
+    const got = await getUserText("paste:abc");
+    expect(got).toEqual(t);
+    expect(await getUserText("paste:missing")).toBeNull();
+  });
+});
+
+describe("export read", () => {
+  it("returns attempts with no audio blob, plus ledger and user texts", async () => {
+    const blob = new Blob(["fake audio"], { type: "audio/webm" });
+    await saveAttempt(makeAttempt("gettysburg", 1000, { audio_blob: blob }));
+    await saveLedgerItem(makeLedgerItem("gettysburg", 1200));
+    await saveUserText({
+      id: "paste:zed",
+      title: "Mine",
+      text: "Mine to keep.",
+      sentences: ["Mine to keep."],
+      hints: ["Mine to keep"],
+      created_at: 10,
+    });
+
+    const rows = await readAllForExport();
+    expect(rows.attempts).toHaveLength(1);
+    expect(rows.attempts[0].audio_blob).toBeNull();
+    expect(rows.attempts[0].corrected_transcript).toBe("take at 1000");
+    expect(rows.ledger).toHaveLength(1);
+    expect(rows.userTexts).toHaveLength(1);
+    expect(rows.userTexts[0].id).toBe("paste:zed");
+  });
+});
+
+describe("v2 to v3 migration", () => {
+  it("opens a v2 database at v3 with existing rows intact and the new stores present", async () => {
+    // Seed a v2 database exactly as EPIC 3 wrote it: attempts + schedules.
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.open("franklins-podium", 2);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        const store = db.createObjectStore("attempts", { keyPath: "id" });
+        store.createIndex("by_speech_created", ["speech_id", "created_at"]);
+        db.createObjectStore("schedules", { keyPath: "speech_id" });
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction(["attempts", "schedules"], "readwrite");
+        tx.objectStore("attempts").put({
+          id: "gettysburg:1",
+          speech_id: "gettysburg",
+          created_at: 1,
+          mode: "warmup",
+          transcript: "raw",
+          corrected_transcript: "kept take",
+          audio_blob: null,
+          alignment: [],
+        });
+        tx.objectStore("schedules").put({
+          speech_id: "gettysburg",
+          condensed_at: 1,
+          reveal_at: 2,
+          status: "waiting",
+        });
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => reject(tx.error);
+      };
+      req.onerror = () => reject(req.error);
+    });
+
+    // Opening through the app upgrades to v3. Existing rows survive and the
+    // new stores are usable.
+    expect(await countAttempts("gettysburg")).toBe(1);
+    expect((await getSchedule("gettysburg"))?.status).toBe("waiting");
+    await saveLedgerItem(makeLedgerItem("gettysburg", 3000));
+    expect(await countLedger()).toBe(1);
+    await saveUserText({
+      id: "paste:new",
+      title: "New",
+      text: "New source.",
+      sentences: ["New source."],
+      hints: ["New source"],
+      created_at: 1,
+    });
+    expect((await getUserText("paste:new"))?.title).toBe("New");
   });
 });
 

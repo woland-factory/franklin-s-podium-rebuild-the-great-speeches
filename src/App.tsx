@@ -17,7 +17,7 @@ import {
   countAttempts,
   listAttempts,
 } from "./lib/db";
-import { revealAtFromDays, scheduleState } from "./lib/schedule";
+import { revealAtFromDays, scheduleState, isValidGap } from "./lib/schedule";
 import { isDemoEnabled } from "./lib/env";
 import { parseHash, buildHash, type View } from "./lib/nav";
 import type { AlignmentPair, Attempt, AttemptMode, ScheduleEntry } from "./types";
@@ -218,7 +218,7 @@ export function App() {
   }
 
   function scheduleGap(days: number) {
-    if (!selectedSpeechId) return;
+    if (!selectedSpeechId || !isValidGap(days)) return;
     const now = Date.now();
     const entry: ScheduleEntry = {
       speech_id: selectedSpeechId,

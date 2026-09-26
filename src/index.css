@@ -416,6 +416,27 @@ label.field-label {
   justify-content: flex-end;
 }
 
+/* Schedule panel */
+.schedule-panel .muted {
+  margin: 0 0 10px;
+}
+
+.gap-presets {
+  border: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.gap-presets legend {
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 0;
+  margin-bottom: 8px;
+}
+
 /* Notices (errors, banners) */
 .notice {
   border: 1px solid var(--line);

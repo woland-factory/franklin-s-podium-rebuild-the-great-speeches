@@ -53,14 +53,22 @@ the cross-origin isolation headers WebGPU and threaded WASM need.
 ```bash
 git clone <this-repo-url>
 cd franklin-s-podium-rebuild-the-great-speeches
-docker compose -f docker-compose.staging.yml up --build
+docker build -t franklins-podium .
+docker run --rm -e SEED_DEMO=1 -p 8080:80 franklins-podium
 ```
 
+Then open http://127.0.0.1:8080.
+
 The build downloads the pinned Whisper model, so the first build needs network
-access and takes a few minutes. Once it is up, the app is served on container
-port 80. `SEED_DEMO=1` (set in the staging compose) makes the app show a sample
-reconstruction aligned against Gettysburg the moment it loads, so you can see
-the study surface without recording anything.
+access and takes a few minutes. The container serves on port 80, mapped here to
+8080 on your machine. `SEED_DEMO=1` makes the app show a sample reconstruction
+aligned against Gettysburg the moment it loads, so you can see the study surface
+without recording anything.
+
+The `docker-compose.yml` and `docker-compose.staging.yml` files are for
+deployment behind a reverse proxy. They join an external Docker network that the
+proxy owns, so they need that network to already exist and are not the way to
+run the app on a fresh clone. Use the two commands above instead.
 
 ### Locally with Node
 

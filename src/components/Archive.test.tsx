@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IDBFactory } from "fake-indexeddb";
 import "fake-indexeddb/auto";
@@ -65,11 +65,14 @@ describe("Archive", () => {
       />,
     );
 
-    let rows = await screen.findAllByRole("button", { name: /take number/i });
+    const rows = await screen.findAllByRole("button", { name: /take number/i });
     expect(rows).toHaveLength(10);
     await user.click(screen.getByRole("button", { name: /load more/i }));
-    rows = await screen.findAllByRole("button", { name: /take number/i });
-    expect(rows).toHaveLength(12);
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: /take number/i }),
+      ).toHaveLength(12),
+    );
   });
 
   it("opens an attempt when its row is pressed", async () => {

@@ -7,7 +7,9 @@ you missed. Nothing you say ever leaves your machine.
 
 It ships a small curated library of short public-domain speeches and the full
 practice loop for each one: pick a speech, read its moves, record, transcribe,
-correct, and study.
+correct, and study. You can schedule a cold attempt a few days out so the words
+have time to fade, take a calendar reminder with you, and keep every take in a
+per-speech archive to set this month's reconstruction beside last month's.
 
 ## Why it exists
 
@@ -26,9 +28,19 @@ what a master said becomes something you study, not something you fail.
 - **Meaning-tolerant alignment.** A deterministic algorithm aligns your
   sentences to the original by lexical overlap while preserving order, so
   reordering and paraphrase still match.
+- **A forgetting gap you set.** From a speech's read screen you schedule a cold
+  attempt two or more days out. The app holds it closed with a countdown until
+  the reveal, while the same-day warm-up stays open. You can download a calendar
+  file for the reveal so the reminder lives in your own calendar. No email, no
+  push.
+- **An archive that compounds.** Every reconstruction, warm-up or cold, is saved
+  per speech with its transcript, alignment, and audio. The archive lists them
+  newest first, and you can put any two takes side by side on the same neutral
+  surface to read the distance between them. No streaks, no scores, no graphs.
 - **Private by construction.** There is no server and no account. Audio and
   transcripts stay in your browser (IndexedDB). The only network requests are
-  for the app's own static files and the model.
+  for the app's own static files and the model. The calendar file is built in
+  your browser and saved straight to your device.
 
 ## Run it
 
@@ -71,7 +83,9 @@ at revision `51eefc0af78b103839eda9e7e4f4186acc6517fe`.
   - `src/align/` holds the pure logic: `align.ts` (the alignment engine),
     `clean.ts` (transcript cleanup), `segment.ts` (sentence splitting).
   - `src/lib/` holds the runtime plumbing: recording, transcription, and
-    IndexedDB persistence.
+    IndexedDB persistence (`db.ts`, including the per-speech attempt archive and
+    schedules), the spaced-loop gating (`schedule.ts`), and the calendar file
+    builder (`ics.ts`).
   - `src/components/` and `src/App.tsx` hold the UI.
   - `src/data/` holds the speech library: one module per speech (its verbatim
     public-domain text, hint deck, and provenance) and `speeches.ts`, the
@@ -82,6 +96,10 @@ at revision `51eefc0af78b103839eda9e7e4f4186acc6517fe`.
   ```bash
   npm test
   ```
+
+  The IndexedDB logic is proven against `fake-indexeddb` with a fresh in-memory
+  database per test, so indexing and pagination run deterministically without a
+  browser and no state leaks between tests.
 
 - **End-to-end tests** (Playwright) run against the production build inside the
   official Playwright container, which bundles the matching browsers:

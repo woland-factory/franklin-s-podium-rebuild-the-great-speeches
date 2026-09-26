@@ -137,7 +137,7 @@ export function Archive({
                     </span>
                   </span>
                   <span className="attempt-snippet">
-                    {firstLine(a.corrected_transcript) || "No words captured"}
+                    {firstLine(a.corrected_transcript)}
                   </span>
                 </button>
                 <label className="attempt-compare-toggle">

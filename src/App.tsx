@@ -19,6 +19,7 @@ import {
   listLedgerBySpeech,
   saveLedgerItem,
   removeLedgerItem,
+  getUserText,
 } from "./lib/db";
 import { revealAtFromDays, scheduleState, isValidGap } from "./lib/schedule";
 import { isDemoEnabled } from "./lib/env";
@@ -29,6 +30,8 @@ import type {
   AttemptMode,
   LedgerItem,
   ScheduleEntry,
+  Speech,
+  UserText,
 } from "./types";
 import { Library } from "./components/Library";
 import { SpeechScreen } from "./components/SpeechScreen";
@@ -42,9 +45,32 @@ import { Correction } from "./components/Correction";
 import { AlignmentSurface } from "./components/AlignmentSurface";
 import { FirstRunWalk } from "./components/FirstRunWalk";
 import { ErrorState, type ErrorKind } from "./components/ErrorState";
+import { Ledger } from "./components/Ledger";
+import { PasteScreen } from "./components/PasteScreen";
+import { Settings } from "./components/Settings";
 
 type Phase = "record" | "transcribing" | "correct" | "study";
 type ComparePair = { newer: Attempt; older: Attempt | null };
+
+// A user's pasted source, adapted to the shape the read/study loop already
+// uses. A fixed positive label stands in for a curated author. Year 0 is a
+// sentinel the read screen reads as "no byline year".
+function sourceFromUserText(t: UserText): Speech {
+  return {
+    id: t.id,
+    title: t.title,
+    author: "Your text",
+    year: 0,
+    source_url: "",
+    public_domain_basis: "",
+    full_text: t.text,
+    sentences: t.sentences,
+    hint_deck: t.hints,
+  };
+}
+
+const isPasteSourceId = (id: string | null): boolean =>
+  !!id && id.startsWith("paste:");
 
 export function App() {
   const [view, setView] = useState<View>("library");
@@ -71,9 +97,16 @@ export function App() {
   const [compare, setCompare] = useState<ComparePair | null>(null);
   const [keptPhrases, setKeptPhrases] = useState<Set<string>>(new Set());
   const [keptItems, setKeptItems] = useState<LedgerItem[]>([]);
+  const [userSource, setUserSource] = useState<Speech | null>(null);
+  const [userSourceLoading, setUserSourceLoading] = useState(false);
 
   const blobRef = useRef<Blob | null>(null);
-  const selectedSpeech = getSpeech(selectedSpeechId);
+  // A curated id resolves synchronously; a "paste:" id resolves from the DB
+  // into userSource. Both expose the same Speech shape to the loop.
+  const isPasteId = isPasteSourceId(selectedSpeechId);
+  const selectedSpeech: Speech | null | undefined = isPasteId
+    ? userSource
+    : getSpeech(selectedSpeechId);
 
   function setAudioUrl(url: string | null) {
     setAudioUrlState((prev) => {
@@ -131,6 +164,36 @@ export function App() {
       // No prior attempt to restore; the read screen stays put.
     }
     return false;
+  }
+
+  // Resolve a "paste:" source from the DB into the loop's Speech shape. The
+  // not-found path only fires after this lookup fails.
+  async function resolveUserSource(id: string) {
+    setUserSourceLoading(true);
+    try {
+      const t = await getUserText(id);
+      setUserSource(t ? sourceFromUserText(t) : null);
+    } catch {
+      setUserSource(null);
+    } finally {
+      setUserSourceLoading(false);
+    }
+  }
+
+  // Drop the user into the read screen for a freshly stored pasted source.
+  function openUserSource(t: UserText) {
+    setUserSource(sourceFromUserText(t));
+    setSelectedSpeechId(t.id);
+    setError(null);
+    setIsSample(false);
+    setPairs([]);
+    setAudioUrl(null);
+    setPhase("record");
+    setView("read");
+    setOpenedAttempt(null);
+    setCompare(null);
+    window.location.hash = buildHash("read", t.id);
+    void loadReadMeta(t.id);
   }
 
   // Load the kept lines for one source into a Set the surface reads, plus the
@@ -196,7 +259,11 @@ export function App() {
     const route = parseHash(window.location.hash);
     setView(route.view);
     setSelectedSpeechId(route.speechId);
-    if (route.speechId && getSpeech(route.speechId)) {
+    if (route.speechId && isPasteSourceId(route.speechId)) {
+      void resolveUserSource(route.speechId);
+      void loadReadMeta(route.speechId);
+      if (route.view === "reconstruct") void restoreLatest(route.speechId);
+    } else if (route.speechId && getSpeech(route.speechId)) {
       void loadReadMeta(route.speechId);
       // A reconstruct deep link (a reload after an attempt) restores the study
       // surface. The read screen stays put so its schedule panel shows.
@@ -216,7 +283,18 @@ export function App() {
         setOpenedAttempt(null);
         setCompare(null);
       }
-      if (route.view === "read" && route.speechId && getSpeech(route.speechId)) {
+      const sourceView =
+        route.view === "read" ||
+        route.view === "reconstruct" ||
+        route.view === "archive";
+      if (sourceView && route.speechId && isPasteSourceId(route.speechId)) {
+        void resolveUserSource(route.speechId);
+        void loadReadMeta(route.speechId);
+      } else if (
+        route.view === "read" &&
+        route.speechId &&
+        getSpeech(route.speechId)
+      ) {
         void loadReadMeta(route.speechId);
       }
     }
@@ -341,7 +419,8 @@ export function App() {
   }
 
   async function handleStudy(text: string) {
-    const speech = getSpeech(selectedSpeechId);
+    // The resolved source works for both curated speeches and pasted text.
+    const speech = selectedSpeech;
     if (!speech) return;
     const spoken = segmentSentences(text);
     const result = align(spoken, speech.sentences);
@@ -394,11 +473,16 @@ export function App() {
     }
   }
 
-  const notFound = view !== "library" && !selectedSpeech;
+  const chromeView =
+    view === "ledger" || view === "paste" || view === "settings";
+  // A paste source still resolving is not a miss; only a failed lookup is.
+  const resolvingSource = isPasteId && userSourceLoading && !userSource;
+  const notFound =
+    !chromeView && view !== "library" && !selectedSpeech && !resolvingSource;
   const originalLabel = selectedSpeech?.author ?? "The original";
   const activeStep =
     view === "library" ? 0 : view === "read" ? 1 : phase === "study" ? 3 : 2;
-  const showWalk = walkVisible && !isSample;
+  const showWalk = walkVisible && !isSample && !chromeView;
   const scheduleReady =
     scheduleState(schedule, Date.now()) === "ready";
 
@@ -416,6 +500,11 @@ export function App() {
       <header className="masthead">
         <h1>Franklin's Podium</h1>
         <p>Speak a great speech from memory, then study your words beside it.</p>
+        <nav className="topnav" aria-label="Main">
+          <a href="#/">Library</a>
+          <a href="#/ledger">Ledger</a>
+          <a href="#/settings">Settings</a>
+        </nav>
       </header>
 
       {showWalk ? (
@@ -428,7 +517,21 @@ export function App() {
         />
       ) : null}
 
-      {notFound ? (
+      {view === "ledger" ? (
+        <Ledger />
+      ) : view === "paste" ? (
+        <PasteScreen onCreated={openUserSource} onBack={goLibrary} />
+      ) : view === "settings" ? (
+        <Settings />
+      ) : resolvingSource ? (
+        <section className="card" aria-labelledby="loading-heading">
+          <h1 id="loading-heading" className="speech-title">
+            Opening your text
+          </h1>
+          <div className="skeleton" style={{ width: "60%" }} />
+          <div className="skeleton" style={{ width: "90%" }} />
+        </section>
+      ) : notFound ? (
         <section className="card" aria-labelledby="notfound-heading">
           <h1 id="notfound-heading" className="speech-title">
             Choose a speech
@@ -480,7 +583,9 @@ export function App() {
             onBack={goLibrary}
             startVariant={scheduleReady ? "secondary" : "primary"}
           />
-          {scheduleLoading ? (
+          {/* Spaced cold attempts are an EPIC 3 feature of curated speeches;
+              a pasted source practices the warm-up loop without scheduling. */}
+          {isPasteId ? null : scheduleLoading ? (
             <section className="card schedule-panel" aria-hidden="true">
               <div className="skeleton" style={{ width: "50%" }} />
               <div className="skeleton" style={{ width: "80%" }} />

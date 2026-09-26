@@ -77,6 +77,60 @@ input {
   font-size: 0.9rem;
 }
 
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+.topnav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.topnav a:hover {
+  text-decoration: underline;
+}
+
+/* Paste entry from the library, a quiet secondary link. */
+.paste-entry-line {
+  margin: 14px 0 0;
+  font-family: system-ui, sans-serif;
+  font-size: 0.95rem;
+}
+
+.paste-entry {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+}
+
+/* Paste screen */
+.paste-input {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.paste-error {
+  margin: 10px 0 0;
+  color: var(--accent);
+  font-family: system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -578,6 +632,75 @@ label.field-label {
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }
+}
+
+/* Ledger */
+.ledger-groups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ledger-group {
+  margin: 0 0 18px;
+}
+
+.ledger-group-title {
+  font-size: 1rem;
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ledger-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.ledger-row + .ledger-row {
+  border-top: 1px solid var(--line);
+}
+
+.ledger-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ledger-phrase {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ledger-date {
+  margin: 4px 0 0;
+  font-family: system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.ledger-remove {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  padding: 10px 12px;
+}
+
+.ledger-empty p {
+  color: var(--ink-soft);
+  font-family: system-ui, sans-serif;
+  font-size: 0.95rem;
+  margin: 0 0 14px;
 }
 
 /* Notices (errors, banners) */

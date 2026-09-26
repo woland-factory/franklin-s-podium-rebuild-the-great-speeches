@@ -29,6 +29,12 @@ export function Library({ speeches, onSelect }: LibraryProps) {
           </li>
         ))}
       </ul>
+
+      <p className="paste-entry-line">
+        <a className="paste-entry" href="#/paste">
+          Practice your own text
+        </a>
+      </p>
     </section>
   );
 }

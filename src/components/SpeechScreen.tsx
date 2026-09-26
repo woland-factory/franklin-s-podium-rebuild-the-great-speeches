@@ -21,7 +21,7 @@ export function SpeechScreen({
         {speech.title}
       </h1>
       <p className="speech-byline">
-        {speech.author}, {speech.year}
+        {speech.year > 0 ? `${speech.author}, ${speech.year}` : speech.author}
       </p>
 
       <h2>The moves</h2>

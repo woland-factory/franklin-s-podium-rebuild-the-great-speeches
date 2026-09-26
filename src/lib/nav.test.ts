@@ -20,6 +20,13 @@ describe("parseHash", () => {
       speechId: "fight-no-more",
     });
   });
+
+  it("reads a speech archive", () => {
+    expect(parseHash("#/speech/gettysburg/archive")).toEqual({
+      view: "archive",
+      speechId: "gettysburg",
+    });
+  });
 });
 
 describe("buildHash", () => {
@@ -28,6 +35,9 @@ describe("buildHash", () => {
     expect(buildHash("read", "gettysburg")).toBe("#/speech/gettysburg");
     expect(buildHash("reconstruct", "gettysburg")).toBe(
       "#/speech/gettysburg/warmup",
+    );
+    expect(buildHash("archive", "gettysburg")).toBe(
+      "#/speech/gettysburg/archive",
     );
   });
 });

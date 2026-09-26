@@ -4,9 +4,17 @@ interface SpeechScreenProps {
   speech: Speech;
   onStart?: () => void;
   onBack?: () => void;
+  // Warm-up is the read screen's primary action until a scheduled reveal
+  // arrives, then it steps down to secondary so the cold attempt can lead.
+  startVariant?: "primary" | "secondary";
 }
 
-export function SpeechScreen({ speech, onStart, onBack }: SpeechScreenProps) {
+export function SpeechScreen({
+  speech,
+  onStart,
+  onBack,
+  startVariant = "primary",
+}: SpeechScreenProps) {
   return (
     <section className="card" aria-labelledby="speech-heading">
       <h1 id="speech-heading" className="speech-title">
@@ -35,7 +43,11 @@ export function SpeechScreen({ speech, onStart, onBack }: SpeechScreenProps) {
       {onStart || onBack ? (
         <div className="btn-row" style={{ marginTop: 16 }}>
           {onStart ? (
-            <button type="button" className="btn btn-primary" onClick={onStart}>
+            <button
+              type="button"
+              className={startVariant === "primary" ? "btn btn-primary" : "btn"}
+              onClick={onStart}
+            >
               Start warm-up
             </button>
           ) : null}

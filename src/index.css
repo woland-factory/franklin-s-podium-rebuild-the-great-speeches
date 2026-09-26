@@ -437,6 +437,118 @@ label.field-label {
   margin-bottom: 8px;
 }
 
+/* Archive */
+.attempt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attempt-item {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.attempt-row {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.12s ease, transform 0.06s ease;
+}
+
+.attempt-row:hover {
+  border-color: var(--accent);
+}
+
+.attempt-row:active {
+  transform: scale(0.99);
+}
+
+.attempt-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.mode-tag {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+.mode-cold {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.attempt-snippet {
+  font-size: 1rem;
+}
+
+.attempt-compare-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  padding: 0 6px;
+  min-width: 44px;
+  cursor: pointer;
+}
+
+.attempt-row-skeleton {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.attempt-caption {
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+
+/* Compare */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.compare-col-head {
+  font-size: 0.95rem;
+  margin: 0 0 8px;
+}
+
+@media (min-width: 720px) {
+  .compare-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 /* Notices (errors, banners) */
 .notice {
   border: 1px solid var(--line);

@@ -134,7 +134,9 @@ export function App() {
     setSelectedSpeechId(route.speechId);
     if (route.speechId && getSpeech(route.speechId)) {
       void loadReadMeta(route.speechId);
-      if (route.view === "read") void restoreLatest(route.speechId);
+      // A reconstruct deep link (a reload after an attempt) restores the study
+      // surface. The read screen stays put so its schedule panel shows.
+      if (route.view === "reconstruct") void restoreLatest(route.speechId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

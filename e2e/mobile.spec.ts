@@ -52,3 +52,51 @@ test("no horizontal scroll across library, read, record, and study at 390px", as
   ).toBeVisible();
   expect(await noHorizontalScroll(page)).toBe(true);
 });
+
+test("no horizontal scroll on the schedule panel, archive, and compare at 390px", async ({
+  page,
+}) => {
+  await page.addInitScript((t) => {
+    (window as unknown as { __E2E_TRANSCRIPT__: string }).__E2E_TRANSCRIPT__ = t;
+  }, FAKE_TRANSCRIPT);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: /skip/i }).click();
+  await page
+    .getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i })
+    .click();
+
+  // Schedule panel, none then waiting.
+  await expect(
+    page.getByRole("heading", { name: /schedule a cold attempt/i }),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+  await page.getByRole("button", { name: /^2 days$/ }).click();
+  await expect(page.getByText(/opens in 2 days/i).first()).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  // Two warm-ups so the archive and compare have content.
+  await page.getByRole("button", { name: /start warm-up/i }).click();
+  await page.getByRole("button", { name: /record your version/i }).click();
+  await page.getByRole("button", { name: /stop and transcribe/i }).click();
+  await page.getByRole("button", { name: /study alignment/i }).click();
+  await page.getByRole("button", { name: /record again/i }).click();
+  await page.getByRole("button", { name: /record your version/i }).click();
+  await page.getByRole("button", { name: /stop and transcribe/i }).click();
+  await page.getByRole("button", { name: /study alignment/i }).click();
+
+  // Archive.
+  await page.getByRole("button", { name: /past attempts \(2\)/i }).click();
+  await expect(page.locator(".attempt-row").first()).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  // Compare, stacked single column at this width.
+  const checks = page.getByRole("checkbox");
+  await checks.nth(0).check();
+  await checks.nth(1).check();
+  await page.getByRole("button", { name: /compare selected/i }).click();
+  await expect(
+    page.getByRole("heading", { name: /your words beside the original/i }).first(),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+});

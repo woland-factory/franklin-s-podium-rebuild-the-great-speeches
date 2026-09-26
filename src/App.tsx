@@ -16,11 +16,20 @@ import {
   markScheduleDone,
   countAttempts,
   listAttempts,
+  listLedgerBySpeech,
+  saveLedgerItem,
+  removeLedgerItem,
 } from "./lib/db";
 import { revealAtFromDays, scheduleState, isValidGap } from "./lib/schedule";
 import { isDemoEnabled } from "./lib/env";
 import { parseHash, buildHash, type View } from "./lib/nav";
-import type { AlignmentPair, Attempt, AttemptMode, ScheduleEntry } from "./types";
+import type {
+  AlignmentPair,
+  Attempt,
+  AttemptMode,
+  LedgerItem,
+  ScheduleEntry,
+} from "./types";
 import { Library } from "./components/Library";
 import { SpeechScreen } from "./components/SpeechScreen";
 import { SchedulePanel } from "./components/SchedulePanel";
@@ -60,6 +69,8 @@ export function App() {
   const [hasPrevious, setHasPrevious] = useState(false);
   const [openedAttempt, setOpenedAttempt] = useState<Attempt | null>(null);
   const [compare, setCompare] = useState<ComparePair | null>(null);
+  const [keptPhrases, setKeptPhrases] = useState<Set<string>>(new Set());
+  const [keptItems, setKeptItems] = useState<LedgerItem[]>([]);
 
   const blobRef = useRef<Blob | null>(null);
   const selectedSpeech = getSpeech(selectedSpeechId);
@@ -121,6 +132,59 @@ export function App() {
     }
     return false;
   }
+
+  // Load the kept lines for one source into a Set the surface reads, plus the
+  // full items so a remove can find its id. A bounded index scan per source.
+  async function loadKept(id: string) {
+    try {
+      const items = await listLedgerBySpeech(id);
+      setKeptItems(items);
+      setKeptPhrases(new Set(items.map((i) => i.phrase)));
+    } catch {
+      setKeptItems([]);
+      setKeptPhrases(new Set());
+    }
+  }
+
+  // Toggle a line in the ledger. The control's state flips at once (100ms
+  // feedback); the IndexedDB write happens in the background, best-effort.
+  function onToggleKeep(phrase: string) {
+    if (!selectedSpeech) return;
+    const sourceId = selectedSpeech.id;
+    if (keptPhrases.has(phrase)) {
+      const item = keptItems.find(
+        (i) => i.speech_id === sourceId && i.phrase === phrase,
+      );
+      setKeptPhrases((prev) => {
+        const next = new Set(prev);
+        next.delete(phrase);
+        return next;
+      });
+      setKeptItems((prev) => prev.filter((i) => i !== item));
+      if (item) void removeLedgerItem(item.id).catch(() => {});
+    } else {
+      const item: LedgerItem = {
+        id: crypto.randomUUID(),
+        phrase,
+        speech_id: sourceId,
+        source_title: selectedSpeech.title,
+        saved_at: Date.now(),
+      };
+      setKeptPhrases((prev) => new Set(prev).add(phrase));
+      setKeptItems((prev) => [...prev, item]);
+      void saveLedgerItem(item).catch(() => {});
+    }
+  }
+
+  // Whenever a resolved source's study or archive surface is showing, load its
+  // kept lines so the keep control reflects the ledger.
+  useEffect(() => {
+    const id = selectedSpeech?.id;
+    if (id && (view === "reconstruct" || view === "archive")) {
+      void loadKept(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSpeech?.id, view]);
 
   // Initial load: demo path, else the deep-linked view with a restore attempt.
   useEffect(() => {
@@ -388,12 +452,16 @@ export function App() {
             older={compare.older}
             onBack={() => setCompare(null)}
             onRecordAnother={startWarmup}
+            keptPhrases={keptPhrases}
+            onToggleKeep={onToggleKeep}
           />
         ) : openedAttempt ? (
           <AttemptView
             speech={selectedSpeech}
             attempt={openedAttempt}
             onBack={() => setOpenedAttempt(null)}
+            keptPhrases={keptPhrases}
+            onToggleKeep={onToggleKeep}
           />
         ) : (
           <Archive
@@ -481,6 +549,8 @@ export function App() {
                 pairs={pairs}
                 audioUrl={audioUrl}
                 originalLabel={originalLabel}
+                keptPhrases={isSample ? undefined : keptPhrases}
+                onToggleKeep={isSample ? undefined : onToggleKeep}
               />
               <div className="btn-row" style={{ marginTop: 12 }}>
                 {!isSample ? (

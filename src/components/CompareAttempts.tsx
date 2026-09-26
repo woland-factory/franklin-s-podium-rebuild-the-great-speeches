@@ -9,14 +9,20 @@ interface CompareAttemptsProps {
   older: Attempt | null;
   onBack: () => void;
   onRecordAnother: () => void;
+  keptPhrases?: Set<string>;
+  onToggleKeep?: (phrase: string) => void;
 }
 
 function CompareColumn({
   speech,
   attempt,
+  keptPhrases,
+  onToggleKeep,
 }: {
   speech: Speech;
   attempt: Attempt;
+  keptPhrases?: Set<string>;
+  onToggleKeep?: (phrase: string) => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -38,6 +44,8 @@ function CompareColumn({
         pairs={attempt.alignment}
         audioUrl={audioUrl}
         originalLabel={speech.author}
+        keptPhrases={keptPhrases}
+        onToggleKeep={onToggleKeep}
       />
     </div>
   );
@@ -53,6 +61,8 @@ export function CompareAttempts({
   older,
   onBack,
   onRecordAnother,
+  keptPhrases,
+  onToggleKeep,
 }: CompareAttemptsProps) {
   return (
     <section aria-labelledby="compare-heading">
@@ -67,8 +77,18 @@ export function CompareAttempts({
 
       {older ? (
         <div className="compare-grid">
-          <CompareColumn speech={speech} attempt={newer} />
-          <CompareColumn speech={speech} attempt={older} />
+          <CompareColumn
+            speech={speech}
+            attempt={newer}
+            keptPhrases={keptPhrases}
+            onToggleKeep={onToggleKeep}
+          />
+          <CompareColumn
+            speech={speech}
+            attempt={older}
+            keptPhrases={keptPhrases}
+            onToggleKeep={onToggleKeep}
+          />
         </div>
       ) : (
         <div className="card">

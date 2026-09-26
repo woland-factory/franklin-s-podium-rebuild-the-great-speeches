@@ -4,12 +4,20 @@ interface AlignmentSurfaceProps {
   pairs: AlignmentPair[];
   audioUrl?: string | null;
   originalLabel?: string;
+  // Originals already kept to the ledger for this source. When onToggleKeep is
+  // provided, each original-bearing pair shows a keep toggle. The control is
+  // additive and positive: it marks a line worth taking, never a line marked
+  // wrong. No score, no count, no error styling.
+  keptPhrases?: Set<string>;
+  onToggleKeep?: (phrase: string) => void;
 }
 
 export function AlignmentSurface({
   pairs,
   audioUrl,
   originalLabel = "The original",
+  keptPhrases,
+  onToggleKeep,
 }: AlignmentSurfaceProps) {
   return (
     <section className="card" aria-labelledby="align-heading">
@@ -53,11 +61,42 @@ export function AlignmentSurface({
                 ) : (
                   <p className="pair-empty">In yours, not the original.</p>
                 )}
+                {onToggleKeep && pair.original ? (
+                  <KeepToggle
+                    phrase={pair.original}
+                    kept={keptPhrases?.has(pair.original) ?? false}
+                    onToggle={onToggleKeep}
+                  />
+                ) : null}
               </div>
             </div>
           </article>
         ))}
       </div>
     </section>
+  );
+}
+
+function KeepToggle({
+  phrase,
+  kept,
+  onToggle,
+}: {
+  phrase: string;
+  kept: boolean;
+  onToggle: (phrase: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={kept ? "keep-btn kept" : "keep-btn"}
+      aria-pressed={kept}
+      aria-label={
+        kept ? "Remove this line from your ledger" : "Keep this line"
+      }
+      onClick={() => onToggle(phrase)}
+    >
+      {kept ? "Kept" : "Keep"}
+    </button>
   );
 }

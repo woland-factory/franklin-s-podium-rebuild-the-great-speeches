@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AlignmentSurface } from "./AlignmentSurface";
 import type { AlignmentPair } from "../types";
 
@@ -45,5 +46,63 @@ describe("AlignmentSurface", () => {
       <AlignmentSurface pairs={pairs} audioUrl="blob:fake" />,
     );
     expect(container.querySelector("audio")).not.toBeNull();
+  });
+
+  it("shows no keep control when onToggleKeep is absent", () => {
+    render(<AlignmentSurface pairs={pairs} />);
+    expect(screen.queryByRole("button", { name: /keep this line/i })).toBeNull();
+  });
+
+  it("renders a keep toggle only on pairs that have an original", () => {
+    render(
+      <AlignmentSurface pairs={pairs} onToggleKeep={() => {}} />,
+    );
+    // Two pairs have an original (aligned + original-only); the spoken-only pair
+    // has nothing to keep.
+    expect(
+      screen.getAllByRole("button", { name: /keep this line/i }),
+    ).toHaveLength(2);
+  });
+
+  it("reflects kept state via aria-pressed and calls back with the original", async () => {
+    const onToggleKeep = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AlignmentSurface
+        pairs={pairs}
+        onToggleKeep={onToggleKeep}
+        keptPhrases={new Set(["It is altogether fitting and proper"])}
+      />,
+    );
+    const kept = screen.getByRole("button", {
+      name: /remove this line from your ledger/i,
+    });
+    expect(kept).toHaveAttribute("aria-pressed", "true");
+
+    const notKept = screen.getByRole("button", {
+      name: /keep this line/i,
+    });
+    expect(notKept).toHaveAttribute("aria-pressed", "false");
+    await user.click(notKept);
+    expect(onToggleKeep).toHaveBeenCalledWith(
+      "We are met on a great battle-field",
+    );
+  });
+
+  it("stays a neutral surface with keep enabled: no score, pass/fail, or error ink", () => {
+    const { container } = render(
+      <AlignmentSurface
+        pairs={pairs}
+        onToggleKeep={() => {}}
+        keptPhrases={new Set(["It is altogether fitting and proper"])}
+      />,
+    );
+    const html = container.innerHTML;
+    expect(html).not.toContain("%");
+    expect(html).not.toMatch(/\b(score|percent|grade|pass|fail|correct|wrong)\b/i);
+    expect(container.querySelector('[class*="error"]')).toBeNull();
+    expect(container.querySelector('[class*="diff"]')).toBeNull();
+    expect(container.querySelector('[class*="red"]')).toBeNull();
+    expect(container.querySelector("del, ins, s")).toBeNull();
   });
 });

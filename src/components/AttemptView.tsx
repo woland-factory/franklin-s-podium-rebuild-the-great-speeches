@@ -7,10 +7,18 @@ interface AttemptViewProps {
   speech: Speech;
   attempt: Attempt;
   onBack: () => void;
+  keptPhrases?: Set<string>;
+  onToggleKeep?: (phrase: string) => void;
 }
 
 /** One archived attempt rendered on the neutral alignment surface. */
-export function AttemptView({ speech, attempt, onBack }: AttemptViewProps) {
+export function AttemptView({
+  speech,
+  attempt,
+  onBack,
+  keptPhrases,
+  onToggleKeep,
+}: AttemptViewProps) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,6 +45,8 @@ export function AttemptView({ speech, attempt, onBack }: AttemptViewProps) {
         pairs={attempt.alignment}
         audioUrl={audioUrl}
         originalLabel={speech.author}
+        keptPhrases={keptPhrases}
+        onToggleKeep={onToggleKeep}
       />
     </>
   );

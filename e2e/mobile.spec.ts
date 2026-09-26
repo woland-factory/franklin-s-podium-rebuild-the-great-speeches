@@ -101,6 +101,69 @@ test("no horizontal scroll on the schedule panel, archive, and compare at 390px"
   expect(await noHorizontalScroll(page)).toBe(true);
 });
 
+test("no horizontal scroll on the study surface with Keep, the ledger with a kept line, and an opened attempt at 390px", async ({
+  page,
+}) => {
+  await page.addInitScript((t) => {
+    (window as unknown as { __E2E_TRANSCRIPT__: string }).__E2E_TRANSCRIPT__ = t;
+  }, FAKE_TRANSCRIPT);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: /skip/i }).click();
+  await page
+    .getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i })
+    .click();
+  await page.getByRole("button", { name: /start warm-up/i }).click();
+  await page.getByRole("button", { name: /record your version/i }).click();
+  await page.getByRole("button", { name: /stop and transcribe/i }).click();
+  await page.getByRole("button", { name: /study alignment/i }).click();
+
+  // Study surface with the Keep control present, pairs collapsed to one column.
+  await expect(
+    page.getByRole("button", { name: /^keep this line$/i }).first(),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  // Toggle a line to the kept state; still no horizontal scroll.
+  await page.getByRole("button", { name: /^keep this line$/i }).first().click();
+  await expect(
+    page.getByRole("button", { name: /remove this line from your ledger/i }).first(),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  // A single opened archived attempt.
+  await page.getByRole("button", { name: /past attempts \(1\)/i }).click();
+  await page.locator(".attempt-row").first().click();
+  await expect(
+    page.getByRole("heading", { name: /your words beside the original/i }),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+
+  // Ledger with a kept line and its Remove control.
+  await page.getByRole("link", { name: "Ledger" }).click();
+  await expect(
+    page.getByRole("button", { name: /remove .* from your ledger/i }).first(),
+  ).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+});
+
+test("no horizontal scroll on an error state at 390px", async ({ page }) => {
+  // An empty transcript drives the no-speech error surface.
+  await page.addInitScript(() => {
+    (window as unknown as { __E2E_TRANSCRIPT__: string }).__E2E_TRANSCRIPT__ = "";
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /skip/i }).click();
+  await page
+    .getByRole("button", { name: /gettysburg address.*abraham lincoln, 1863/i })
+    .click();
+  await page.getByRole("button", { name: /start warm-up/i }).click();
+  await page.getByRole("button", { name: /record your version/i }).click();
+  await page.getByRole("button", { name: /stop and transcribe/i }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  expect(await noHorizontalScroll(page)).toBe(true);
+});
+
 test("no horizontal scroll on the ledger, paste, and settings screens at 390px", async ({
   page,
 }) => {
